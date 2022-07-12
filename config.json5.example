@@ -1,0 +1,19 @@
+{
+  // The Host to Run The Server For Formula on
+  host: "localhost",
+  // The Port to Run The Server For Formula on
+  port: 8080,
+  // The Path/URL For The DB Connection
+  db: "sqlite:///formula.db",
+  // Chains are the web 3 chains that you want to listen for
+  chains: [
+    {
+      // Rpc Of The Url
+      rpc: "https://rpc-mumbai.matic.today",
+      // Chain's Name
+      name: "Polygon",
+      // Chain's ID
+      chain_id: 80001
+    },
+  ]
+}

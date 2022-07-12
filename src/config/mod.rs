@@ -1,7 +1,8 @@
-use config::{Config};
+use config::Config;
 use eyre::Result;
-use serde::Deserialize;
 use eyre::WrapErr;
+use serde::Deserialize;
+use tracing::{info, instrument};
 
 #[derive(Debug, Deserialize)]
 pub struct Chain {
@@ -19,7 +20,10 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
+    #[instrument]
     pub fn from_json5(filename: &str) -> Result<Self> {
+        info!("Trying to read {} for application config", filename);
+
         let config = Config::builder()
             .add_source(config::File::with_name(filename))
             .build()?;

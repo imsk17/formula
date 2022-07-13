@@ -8,7 +8,12 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1.19.2", features = ["macros", "rt-multi-thread"] }
 config = { version = "0.13.1", features = ["json5"] }
-serde = { version = "1.0.139", features = ["derive"] }
+ethers = { version = "0.14.0", features = ["ws", "rustls", "abigen-offline"] }
+futures = "0.3.21"
+async-trait = "0.1.56"
+thiserror = "1.0.31"
+serde = { version = "1.0.124", features = ["derive"] }
+serde_json = "1.0.64"
 eyre = "0.6.8"
 color-eyre = "0.6.2"
 tracing = "0.1.35"

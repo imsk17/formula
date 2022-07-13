@@ -4,14 +4,14 @@ use eyre::WrapErr;
 use serde::Deserialize;
 use tracing::{info, instrument};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Chain {
     pub rpc: String,
     pub name: String,
     pub chain_id: u32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct AppConfig {
     pub host: String,
     pub port: i32,
@@ -27,6 +27,8 @@ impl AppConfig {
         let config = Config::builder()
             .add_source(config::File::with_name(filename))
             .build()?;
-        config.try_deserialize().context("Failed to parse config from config.json5")
+        config
+            .try_deserialize()
+            .context("Failed to parse config from config.json5")
     }
 }

@@ -8,6 +8,7 @@ use crate::erc165::service::Erc165Res;
 use crate::erc165::service::Erc165Service;
 use ethers::abi::Address;
 use ethers::prelude::{Provider, Ws, H160};
+use eyre::WrapErr;
 use tracing::{debug, info};
 
 use super::erc165_interfaces::*;
@@ -42,20 +43,28 @@ impl Erc165Service for Erc165NetworkService {
             if !supports_erc165 {
                 continue;
             }
-            let supports_erc165n: bool =
-                contract.supports_interface(*ERC165N).call().await.unwrap();
+            let supports_erc165n: bool = contract
+                .supports_interface(*ERC165N)
+                .call()
+                .await
+                .map_err(|e| Erc165ServiceErrors::FailedToQueryChain(e))?;
+            ();
             if supports_erc165n {
                 res.insert(contract_addr.to_string(), set);
                 continue;
             }
-            let supports_erc721: bool = contract.supports_interface(*ERC721).call().await.unwrap();
+            let supports_erc721: bool = contract
+                .supports_interface(*ERC721)
+                .call()
+                .await
+                .map_err(|e| Erc165ServiceErrors::FailedToQueryChain(e))?;
             if supports_erc721 {
                 set.insert(Erc165Interface::ERC721);
                 let supports_erc721_metadata: bool = contract
                     .supports_interface(*ERC721_METADATA)
                     .call()
                     .await
-                    .unwrap();
+                    .map_err(|e| Erc165ServiceErrors::FailedToQueryChain(e))?;
                 if supports_erc721_metadata {
                     set.insert(Erc165Interface::ERC721Metadata);
                 }
@@ -63,7 +72,7 @@ impl Erc165Service for Erc165NetworkService {
                     .supports_interface(*ERC721_ENUMERABLE)
                     .call()
                     .await
-                    .unwrap();
+                    .map_err(|e| Erc165ServiceErrors::FailedToQueryChain(e))?;
                 if supports_erc721_enumerable {
                     set.insert(Erc165Interface::ERC721Enumerable);
                 }
@@ -77,7 +86,7 @@ impl Erc165Service for Erc165NetworkService {
                     .supports_interface(*ERC1155_METADATA)
                     .call()
                     .await
-                    .unwrap();
+                    .map_err(|e| Erc165ServiceErrors::FailedToQueryChain(e))?;
                 if supports_erc1155_metadata {
                     set.insert(Erc165Interface::ERC1155Metadata);
                 }

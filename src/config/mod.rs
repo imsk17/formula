@@ -1,14 +1,19 @@
 use config::Config;
+use diesel::r2d2::ConnectionManager;
+use diesel::r2d2::Pool;
+use diesel::PgConnection;
 use eyre::Result;
 use eyre::WrapErr;
 use serde::Deserialize;
 use tracing::{info, instrument};
 
+use crate::listener::PgPool;
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct Chain {
     pub rpc: String,
     pub name: String,
-    pub chain_id: u32,
+    pub chain_id: i64,
 }
 
 #[derive(Debug, Deserialize, Clone)]

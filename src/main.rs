@@ -1,5 +1,9 @@
 #![allow(dead_code, unused_imports)]
-use crate::listener::{Listenable, Listener};
+use crate::{
+    config::AppConfig,
+    listener::{Listenable, Listener},
+};
+use diesel::{r2d2::ConnectionManager, Connection, PgConnection};
 use eyre::Result;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -9,11 +13,15 @@ use tokio::join;
 use tokio::task::JoinHandle;
 use tracing::debug;
 use tracing_subscriber::filter::EnvFilter;
+#[macro_use]
+extern crate diesel;
+use diesel::{r2d2, r2d2::Pool};
 
 mod config;
 mod contracts;
 mod erc165;
 mod listener;
+mod schema;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -23,18 +31,27 @@ async fn main() -> Result<()> {
         .with_line_number(true)
         .with_thread_names(true)
         .init();
-    let conf = config::AppConfig::from_json5("config")?;
-    debug!("Config Read Successfully. {:?}", conf.clone());
-    let listeners: Vec<JoinHandle<_>> = conf
-        .chains
-        .into_iter()
-        .map(move |c| {
-            tokio::spawn(async move {
-                let listenable = Listener::try_from(&c).await.expect("Shant Fail");
-                listenable.listen().await
-            })
-        })
-        .collect();
+
+    let config = AppConfig::from_json5("config")?;
+
+    let cm = ConnectionManager::<PgConnection>::new(&config.db);
+
+    debug!("Config Read Successfully. {:?}", config.clone());
+
+    let pool = r2d2::Pool::builder().build(cm).unwrap();
+
+    let mut listeners = vec![];
+
+    for chain in config.chains.clone().into_iter() {
+        let pool = pool.clone();
+        let chain_id = chain.chain_id;
+
+        let handle = tokio::spawn(async move {
+            let listener = Listener::try_from(&chain, pool.clone(), chain_id).await?;
+            listener.listen().await
+        });
+        listeners.push(handle);
+    }
     let _ = futures::future::join_all(listeners).await;
     Ok(())
 }

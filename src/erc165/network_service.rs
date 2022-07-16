@@ -8,6 +8,7 @@ use crate::erc165::service::Erc165Res;
 use crate::erc165::service::Erc165Service;
 use ethers::abi::Address;
 use ethers::prelude::{Provider, Ws, H160};
+use ethers::utils;
 use eyre::WrapErr;
 use tracing::{debug, info};
 
@@ -50,7 +51,7 @@ impl Erc165Service for Erc165NetworkService {
                 .map_err(|e| Erc165ServiceErrors::FailedToQueryChain(e))?;
             ();
             if supports_erc165n {
-                res.insert(contract_addr.to_string(), set);
+                res.insert(utils::to_checksum(contract_addr, None), set);
                 continue;
             }
             let supports_erc721: bool = contract
@@ -76,6 +77,8 @@ impl Erc165Service for Erc165NetworkService {
                 if supports_erc721_enumerable {
                     set.insert(Erc165Interface::ERC721Enumerable);
                 }
+                res.insert(utils::to_checksum(contract_addr, None), set);
+                continue;
             }
 
             let supports_erc1155: bool =
@@ -91,7 +94,7 @@ impl Erc165Service for Erc165NetworkService {
                     set.insert(Erc165Interface::ERC1155Metadata);
                 }
             }
-            res.insert(contract_addr.to_string(), set);
+            res.insert(utils::to_checksum(contract_addr, None), set);
         }
         Ok(res)
     }

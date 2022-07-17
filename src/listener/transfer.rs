@@ -1,17 +1,17 @@
 use crate::listener::errors::EventParsingError;
 use ethers::abi::AbiDecode;
-use ethers::prelude::{Log, U256};
+use ethers::prelude::{Log, H256, U256};
 use ethers::types::Address;
 use ethers::utils::keccak256;
-use serde::de::Unexpected::Str;
 
-pub struct Transfer {
-    from: String,
-    to: String,
-    value: i128,
+#[derive(Debug)]
+pub struct TransferEvent {
+    from: Address,
+    to: Address,
+    value: U256,
 }
 
-impl TryFrom<&Log> for Transfer {
+impl TryFrom<&Log> for TransferEvent {
     type Error = EventParsingError;
 
     fn try_from(log: &Log) -> Result<Self, Self::Error> {
@@ -21,26 +21,29 @@ impl TryFrom<&Log> for Transfer {
             });
         }
 
-        if log.topics[1].to_string() == Transfer::topic_str() {
+        if log.topics[1].to_string() == TransferEvent::topic_str() {
             return Err(EventParsingError::IncorrectTopic {
                 got: log.topics[1].to_string(),
-                expected: Transfer::topic_str(),
+                expected: TransferEvent::topic_str(),
             });
         }
 
-        Ok(Transfer {
-            from: Address::from(log.topics[1]).to_string(),
-            to: Address::from(log.topics[2]).to_string(),
-            value: U256::decode(&log.data).unwrap().as_u128() as i128,
+        Ok(TransferEvent {
+            from: Address::from(log.topics[1]),
+            to: Address::from(log.topics[2]),
+            value: U256::decode(log.topics[3]).unwrap(),
         })
     }
 }
 
-impl Transfer {
+impl TransferEvent {
     pub fn topic() -> [u8; 32] {
         keccak256("Transfer(address,address,uint256)")
     }
+    pub fn topic_h256() -> H256 {
+        H256::from(keccak256("Transfer(address,address,uint256)"))
+    }
     pub fn topic_str() -> String {
-        String::from_utf8(Self::topic().to_vec()).unwrap()
+        H256::from(keccak256("Transfer(address,address,uint256)")).to_string()
     }
 }

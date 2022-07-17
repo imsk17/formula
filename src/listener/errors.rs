@@ -1,3 +1,4 @@
+use ethers::abi;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -6,4 +7,6 @@ pub enum EventParsingError {
     IncorrectTopicsLength { got: usize },
     #[error("The topics was incorrect. Got: {got:?} Expected: {expected:?}")]
     IncorrectTopic { got: String, expected: String },
+    #[error("Event decoding Failed")]
+    FailedEventDecoding(#[from] abi::Error),
 }

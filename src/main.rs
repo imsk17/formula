@@ -1,21 +1,17 @@
-#![allow(dead_code, unused_imports)]
+#![allow(dead_code)]
 use crate::{
     config::AppConfig,
     listener::{Listenable, Listener},
 };
-use diesel::{r2d2::ConnectionManager, Connection, PgConnection};
+use diesel::{r2d2::ConnectionManager, PgConnection};
 use eyre::Result;
-use std::ops::Deref;
-use std::rc::Rc;
-use std::sync::Arc;
+
 use tokio;
-use tokio::join;
-use tokio::task::JoinHandle;
 use tracing::debug;
 use tracing_subscriber::filter::EnvFilter;
 #[macro_use]
 extern crate diesel;
-use diesel::{r2d2, r2d2::Pool};
+use diesel::r2d2;
 
 mod config;
 mod contracts;

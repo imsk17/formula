@@ -1,27 +1,22 @@
 mod errors;
 mod transfer;
+mod transfer_batch;
 mod transfer_single;
 
 use std::sync::Arc;
 
 use crate::config::Chain;
-use crate::erc165::cache_service::Erc165CacheService;
-use crate::erc165::erc165_interfaces::Erc165Interface;
-use crate::erc165::network_service::Erc165NetworkService;
-use crate::erc165::service::Erc165Service;
-use crate::listener::transfer::Transfer;
-use async_trait::async_trait;
-use diesel::r2d2::{ConnectionManager, PooledConnection};
-use diesel::{r2d2, PgConnection};
-use ethers::abi::{AbiDecode, AbiEncode};
-use ethers::prelude::{
-    Address, Filter, Middleware, Provider, StreamExt, ValueOrArray, Ws, H256, U256,
-};
-use ethers::types::{Log, Res, Topic};
-use ethers::utils::keccak256;
-use eyre::Result;
-use tracing::{info, instrument};
 
+use crate::erc165::cache_service::Erc165CacheService;
+
+use crate::listener::transfer::TransferEvent;
+use crate::listener::transfer_batch::TransferBatchEvent;
+use crate::listener::transfer_single::TransferSingleEvent;
+use async_trait::async_trait;
+
+use diesel::{r2d2, PgConnection};
+use ethers::prelude::{Filter, Middleware, Provider, StreamExt, ValueOrArray, Ws};
+use eyre::Result;
 #[async_trait]
 pub trait Listenable {
     async fn listen(&self) -> Result<()>;
@@ -35,11 +30,14 @@ pub struct Listener {
     pub provider: Provider<Ws>,
     pub pool: Arc<PgPool>,
     pub chain_id: i64,
+    pub _erc165_service: Erc165CacheService,
 }
 
 impl Listener {
     pub async fn try_from(chain: &Chain, pool: PgPool, chain_id: i64) -> Result<Self> {
         let provider = Provider::<Ws>::connect(&chain.rpc).await?;
+        let erc165_nservice = provider.clone().into();
+        let _erc165_service = Erc165CacheService::new(pool.clone(), erc165_nservice, chain_id);
 
         Ok(Self {
             provider,
@@ -47,6 +45,7 @@ impl Listener {
             rpc: chain.rpc.clone(),
             pool: Arc::new(pool),
             chain_id,
+            _erc165_service,
         })
     }
 }
@@ -56,24 +55,22 @@ impl Listenable for Listener {
     async fn listen(&self) -> Result<()> {
         use ValueOrArray::*;
         let mut filter = Filter::new();
-        filter = filter.topic0(Array(vec![H256::from(Transfer::topic())]));
+        filter = filter.topic0(Array(vec![
+            TransferEvent::topic_h256(),
+            TransferSingleEvent::topic_h256(),
+        ]));
         let mut subscription = self.provider.subscribe_logs(&filter).await?;
         while let Some(log) = subscription.next().await {
-            let erc_service = Erc165CacheService::new(
-                (*self.pool).clone(),
-                self.provider.clone().into(),
-                self.chain_id,
-            );
-
-            let result = erc_service.supported_traits(&[&log.address]).await.unwrap();
-
-            for (key, value) in &result {
-                info!(
-                    "[BN {} - Contract {}: Interfaces {:?}]",
-                    log.block_number.unwrap(),
-                    key,
-                    value.iter().collect::<Vec<_>>()
-                );
+            if log.topics.len() == 4 {
+                if log.topics[0] == TransferEvent::topic_h256() {
+                    let _event = TransferEvent::try_from(&log).unwrap();
+                } else if log.topics[0] == TransferSingleEvent::topic_h256() {
+                    let _event = TransferSingleEvent::try_from(&log).unwrap();
+                    continue;
+                } else if log.topics[0] == TransferBatchEvent::topic_h256() {
+                    let _event = TransferBatchEvent::try_from(&log).unwrap();
+                    continue;
+                }
             }
         }
         Ok(())

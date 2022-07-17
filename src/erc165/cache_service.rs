@@ -1,31 +1,25 @@
 use std::collections::{HashMap, HashSet};
-use std::str::FromStr;
+
 use std::sync::Arc;
 
-use crate::contracts::ERC165Contract;
 use crate::erc165::errors::Erc165ServiceErrors;
 use crate::erc165::model::{Erc165Dto, NewErc165Dto};
 use crate::erc165::service::Erc165Res;
 use crate::erc165::service::Erc165Service;
-use crate::schema::erc165dto::{self, chain_id, contract};
+use crate::schema::erc165dto::{chain_id, contract};
 
-use diesel::associations::HasTable;
 use diesel::pg::PgConnection;
-use diesel::r2d2::PooledConnection;
-use diesel::result::Error as DieselError;
+
 use diesel::{
     r2d2,
     r2d2::{ConnectionManager, Pool},
 };
-use diesel::{Connection, QueryDsl, QueryResult, RunQueryDsl};
-use ethers::abi::Address;
-use ethers::prelude::{Provider, Ws, H160};
+use diesel::{QueryDsl, RunQueryDsl};
+use ethers::prelude::H160;
 use ethers::utils;
-use eyre::WrapErr;
-use tracing::{debug, info};
 
+use super::erc165_interfaces::*;
 use super::network_service::Erc165NetworkService;
-use super::{erc165_interfaces::*, network_service};
 
 pub struct Erc165CacheService {
     db: Arc<r2d2::Pool<ConnectionManager<PgConnection>>>,

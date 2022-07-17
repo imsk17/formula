@@ -1,16 +1,14 @@
 use std::collections::{HashMap, HashSet};
-use std::str::FromStr;
+
 use std::sync::Arc;
 
 use crate::contracts::ERC165Contract;
 use crate::erc165::errors::Erc165ServiceErrors;
 use crate::erc165::service::Erc165Res;
 use crate::erc165::service::Erc165Service;
-use ethers::abi::Address;
+
 use ethers::prelude::{Provider, Ws, H160};
 use ethers::utils;
-use eyre::WrapErr;
-use tracing::{debug, info};
 
 use super::erc165_interfaces::*;
 

@@ -1,31 +1,29 @@
 use ethers::abi::RawLog;
 
-use ethers::prelude::{Address, EthEvent, Log, H256, U256};
+use ethers::core::types::*;
+use ethers::prelude::{EthEvent, Log, U256};
 use ethers::utils::keccak256;
 
 use super::errors::EventParsingError;
 
 #[derive(EthEvent, Debug)]
 #[ethevent(
-    name = "TransferSingle",
-    abi = "TransferSingle(address,address,address,uint256,uint256)"
+    name = "TransferBatch",
+    abi = "TransferBatch(address,address,address,uint256[],uint256[])"
 )]
-pub struct TransferSingleEvent {
-    #[ethevent(indexed)]
+pub struct TransferBatchEvent {
     operator: Address,
-    #[ethevent(indexed)]
     from: Address,
-    #[ethevent(indexed)]
     to: Address,
-    id: U256,
-    value: U256,
+    id: Vec<U256>,
+    value: Vec<U256>,
 }
 
-impl TryFrom<&Log> for TransferSingleEvent {
+impl TryFrom<&Log> for TransferBatchEvent {
     type Error = EventParsingError;
 
     fn try_from(log: &Log) -> Result<Self, Self::Error> {
-        TransferSingleEvent::decode_log(&RawLog {
+        TransferBatchEvent::decode_log(&RawLog {
             data: log.data.to_vec(),
             topics: log.topics.clone(),
         })
@@ -33,13 +31,13 @@ impl TryFrom<&Log> for TransferSingleEvent {
     }
 }
 
-impl TransferSingleEvent {
+impl TransferBatchEvent {
     pub fn topic() -> [u8; 32] {
-        keccak256("TransferSingle(address,address,address,uint256,uint256)")
+        keccak256("TransferBatch(address,address,address,uint256[],uint256[])")
     }
     pub fn topic_h256() -> H256 {
         H256::from(keccak256(
-            "TransferSingle(address,address,address,uint256,uint256)",
+            "TransferBatch(address,address,address,uint256[],uint256[])",
         ))
     }
     pub fn topic_str() -> String {

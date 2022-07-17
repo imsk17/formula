@@ -1,7 +1,7 @@
 use crate::schema::erc165dto;
 use std::collections::HashSet;
 
-use diesel::{sql_types::BigInt, Insertable, Queryable};
+use diesel::{Insertable, Queryable};
 
 use super::erc165_interfaces::Erc165Interface;
 

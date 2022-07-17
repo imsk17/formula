@@ -1,13 +1,9 @@
 use config::Config;
-use diesel::r2d2::ConnectionManager;
-use diesel::r2d2::Pool;
-use diesel::PgConnection;
+
 use eyre::Result;
 use eyre::WrapErr;
 use serde::Deserialize;
 use tracing::{info, instrument};
-
-use crate::listener::PgPool;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Chain {

@@ -3,6 +3,7 @@ use crate::{
     config::AppConfig,
     listener::{Listenable, Listener},
 };
+
 use diesel::{r2d2::ConnectionManager, PgConnection};
 use eyre::Result;
 
@@ -16,6 +17,7 @@ use diesel::r2d2;
 mod config;
 mod contracts;
 mod erc165;
+mod ethdto;
 mod listener;
 mod schema;
 

@@ -2,10 +2,11 @@ use crate::diesel::ExpressionMethods;
 use crate::listener::PgPool;
 use crate::schema::ethdto::dsl::ethdto;
 use crate::schema::ethdto::dsl::{chain_id, contract, owner};
+use crate::schema::ethdto::token_id;
 use diesel::result::Error;
 
-use diesel::{OptionalExtension, QueryDsl, RunQueryDsl};
 use crate::ethdto::errors::RepoError;
+use diesel::{OptionalExtension, QueryDsl, RunQueryDsl};
 
 use super::dto::{EthDto, NewEthDto};
 
@@ -69,7 +70,7 @@ impl EthRepo {
             let ent = ethdto
                 .filter(chain_id.eq(&nft.chain_id))
                 .filter(contract.eq(&nft.contract))
-                .filter(owner.eq(&nft.owner))
+                .filter(token_id.eq(&nft.token_id))
                 .first::<EthDto>(&*self.pool.get().unwrap())
                 .optional();
             if let Ok(opt) = ent {

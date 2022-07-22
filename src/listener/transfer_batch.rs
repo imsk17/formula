@@ -12,8 +12,11 @@ use super::errors::EventParsingError;
     abi = "TransferBatch(address,address,address,uint256[],uint256[])"
 )]
 pub struct TransferBatchEvent {
+    #[ethevent(indexed)]
     operator: Address,
+    #[ethevent(indexed)]
     from: Address,
+    #[ethevent(indexed)]
     to: Address,
     id: Vec<U256>,
     value: Vec<U256>,

@@ -1,4 +1,4 @@
-#[derive(Eq, Hash, PartialEq, Debug)]
+#[derive(Eq, Hash, PartialEq, Debug, Clone)]
 pub enum Erc165Interface {
     ERC721 = 0x80ac58cd,
     ERC721Metadata = 0x5b5e139f,

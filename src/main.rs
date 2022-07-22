@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 use crate::{
     config::AppConfig,
+    ethdto::repo::EthRepo,
     listener::{Listenable, Listener},
 };
 
@@ -42,10 +43,11 @@ async fn main() -> Result<()> {
 
     for chain in config.chains.clone().into_iter() {
         let pool = pool.clone();
+        let eth_repo = EthRepo::new(pool.clone());
         let chain_id = chain.chain_id;
 
         let handle = tokio::spawn(async move {
-            let listener = Listener::try_from(&chain, pool.clone(), chain_id).await?;
+            let listener = Listener::try_from(&chain, pool.clone(), chain_id, eth_repo).await?;
             listener.listen().await
         });
         listeners.push(handle);

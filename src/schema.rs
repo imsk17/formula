@@ -17,7 +17,7 @@ table! {
         contract -> Varchar,
         chain_id -> Int8,
         contract_type -> Varchar,
-        token_id -> Int8,
+        token_id -> Varchar,
         owner -> Varchar,
         uri -> Nullable<Text>,
         name -> Nullable<Text>,

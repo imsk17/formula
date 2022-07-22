@@ -2,10 +2,14 @@ mod errors;
 mod transfer;
 mod transfer_batch;
 mod transfer_single;
+mod uri_getter;
 
 use std::sync::Arc;
 
-use crate::config::Chain;
+use crate::erc165::service::Erc165Service;
+use crate::ethdto::repo::EthRepo;
+use crate::listener::uri_getter::eth_nft_uri_getter;
+use crate::{config::Chain, listener::uri_getter::EthNftId};
 
 use crate::erc165::cache_service::Erc165CacheService;
 
@@ -16,7 +20,9 @@ use async_trait::async_trait;
 
 use diesel::{r2d2, PgConnection};
 use ethers::prelude::{Filter, Middleware, Provider, StreamExt, ValueOrArray, Ws};
+use ethers::utils;
 use eyre::Result;
+use tracing::warn;
 #[async_trait]
 pub trait Listenable {
     async fn listen(&self) -> Result<()>;
@@ -30,14 +36,20 @@ pub struct Listener {
     pub provider: Provider<Ws>,
     pub pool: Arc<PgPool>,
     pub chain_id: i64,
-    pub _erc165_service: Erc165CacheService,
+    pub erc165_service: Erc165CacheService,
+    pub eth_repo: EthRepo,
 }
 
 impl Listener {
-    pub async fn try_from(chain: &Chain, pool: PgPool, chain_id: i64) -> Result<Self> {
+    pub async fn try_from(
+        chain: &Chain,
+        pool: PgPool,
+        chain_id: i64,
+        eth_repo: EthRepo,
+    ) -> Result<Self> {
         let provider = Provider::<Ws>::connect(&chain.rpc).await?;
         let erc165_nservice = provider.clone().into();
-        let _erc165_service = Erc165CacheService::new(pool.clone(), erc165_nservice, chain_id);
+        let erc165_service = Erc165CacheService::new(pool.clone(), erc165_nservice, chain_id);
 
         Ok(Self {
             provider,
@@ -45,7 +57,8 @@ impl Listener {
             rpc: chain.rpc.clone(),
             pool: Arc::new(pool),
             chain_id,
-            _erc165_service,
+            erc165_service,
+            eth_repo,
         })
     }
 }
@@ -58,12 +71,33 @@ impl Listenable for Listener {
         filter = filter.topic0(Array(vec![
             TransferEvent::topic_h256(),
             TransferSingleEvent::topic_h256(),
+            TransferBatchEvent::topic_h256(),
         ]));
         let mut subscription = self.provider.subscribe_logs(&filter).await?;
+
         while let Some(log) = subscription.next().await {
             if log.topics.len() == 4 {
                 if log.topics[0] == TransferEvent::topic_h256() {
-                    let _event = TransferEvent::try_from(&log).unwrap();
+                    let event = TransferEvent::try_from(&log).unwrap();
+                    let id = EthNftId {
+                        chain_id: self.chain_id,
+                        token_id: event.value.to_string(),
+                        contract: utils::to_checksum(&log.address, None),
+                        owner: utils::to_checksum(&event.to, None),
+                    };
+                    let erc165_res = self
+                        .erc165_service
+                        .supported_traits(&[&log.address])
+                        .await?;
+                    if erc165_res.len() == 0 {
+                        warn!("No supported traits for contract {}", log.address);
+                        continue;
+                    }
+                    let res =
+                        eth_nft_uri_getter(self.provider.clone(), erc165_res.clone(), id).await;
+                    if let Some(newdto) = res {
+                        self.eth_repo.in_or_up_gen(&[newdto]).unwrap();
+                    }
                 } else if log.topics[0] == TransferSingleEvent::topic_h256() {
                     let _event = TransferSingleEvent::try_from(&log).unwrap();
                     continue;

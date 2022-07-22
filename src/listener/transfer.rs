@@ -6,9 +6,9 @@ use ethers::utils::keccak256;
 
 #[derive(Debug)]
 pub struct TransferEvent {
-    from: Address,
-    to: Address,
-    value: U256,
+    pub from: Address,
+    pub to: Address,
+    pub value: U256,
 }
 
 impl TryFrom<&Log> for TransferEvent {

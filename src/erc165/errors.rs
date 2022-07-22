@@ -1,10 +1,21 @@
-use ethers::prelude::{Provider, Ws};
-use thiserror::Error;
+use std::fmt;
 
-#[derive(Error, Debug)]
+use error_stack::Context;
+
+#[derive(Debug)]
 pub enum Erc165ServiceErrors {
-    #[error("Failed to Query Chain For ERC Interfaces")]
-    FailedToQueryChain(#[from] ethers::contract::ContractError<Provider<Ws>>),
-    #[error("Failed to Query DB For ERC Interfaces")]
-    FailedToQueryDB(#[from] diesel::result::Error),
+    FailedToQueryChain,
+    FailedToQueryDB,
 }
+
+impl fmt::Display for Erc165ServiceErrors {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Erc165ServiceErrors::*;
+        match self {
+            FailedToQueryChain => write!(fmt, "Failed to query the chain for the data"),
+            FailedToQueryDB => write!(fmt, "Failed to query the chain for the data"),
+        }
+    }
+}
+
+impl Context for Erc165ServiceErrors {}

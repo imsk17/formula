@@ -6,7 +6,6 @@ use crate::{
 };
 
 use diesel::{r2d2::ConnectionManager, PgConnection};
-use eyre::Result;
 
 use tokio;
 use tracing::debug;
@@ -19,11 +18,12 @@ mod config;
 mod contracts;
 mod erc165;
 mod ethdto;
+mod events;
 mod listener;
 mod schema;
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .compact()
@@ -31,7 +31,7 @@ async fn main() -> Result<()> {
         .with_thread_names(true)
         .init();
 
-    let config = AppConfig::from_json5("config")?;
+    let config = AppConfig::from_json5("config").unwrap();
 
     let cm = ConnectionManager::<PgConnection>::new(&config.db);
 
@@ -47,11 +47,12 @@ async fn main() -> Result<()> {
         let chain_id = chain.chain_id;
 
         let handle = tokio::spawn(async move {
-            let listener = Listener::try_from(&chain, pool.clone(), chain_id, eth_repo).await?;
+            let listener = Listener::try_from(&chain, pool.clone(), chain_id, eth_repo)
+                .await
+                .unwrap();
             listener.listen().await
         });
         listeners.push(handle);
     }
     let _ = futures::future::join_all(listeners).await;
-    Ok(())
 }

@@ -1,9 +1,11 @@
 use config::Config;
 
-use eyre::Result;
-use eyre::WrapErr;
+use error::AppConfigError;
+use error_stack::{IntoReport, Result, ResultExt};
 use serde::Deserialize;
 use tracing::{info, instrument};
+
+mod error;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Chain {
@@ -22,14 +24,18 @@ pub struct AppConfig {
 
 impl AppConfig {
     #[instrument]
-    pub fn from_json5(filename: &str) -> Result<Self> {
+    pub fn from_json5(filename: &str) -> Result<AppConfig, AppConfigError> {
         info!("Trying to read {} for application config", filename);
 
         let config = Config::builder()
             .add_source(config::File::with_name(filename))
-            .build()?;
+            .build()
+            .report()
+            .change_context(AppConfigError::BuildConfigFromFile)?;
+
         config
-            .try_deserialize()
-            .context("Failed to parse config from config.json5")
+            .try_deserialize::<AppConfig>()
+            .report()
+            .change_context(AppConfigError::DeserializeConfigIntoStruct)
     }
 }

@@ -1,4 +1,4 @@
-use crate::listener::errors::EventParsingError;
+use crate::events::errors::EventParsingError;
 use ethers::abi::AbiDecode;
 use ethers::prelude::{Log, H256, U256};
 use ethers::types::Address;
@@ -11,10 +11,8 @@ pub struct TransferEvent {
     pub value: U256,
 }
 
-impl TryFrom<&Log> for TransferEvent {
-    type Error = EventParsingError;
-
-    fn try_from(log: &Log) -> Result<Self, Self::Error> {
+impl TransferEvent {
+    pub fn try_from(log: &Log) -> Result<Self, EventParsingError> {
         if log.topics.len() != 4 {
             return Err(EventParsingError::IncorrectTopicsLength {
                 got: log.topics.len(),

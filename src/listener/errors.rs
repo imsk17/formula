@@ -1,12 +1,21 @@
-use ethers::abi;
-use thiserror::Error;
+use std::fmt;
 
-#[derive(Error, Debug)]
-pub enum EventParsingError {
-    #[error("The no of topics was incorrect. Got: {got:?} Topics")]
-    IncorrectTopicsLength { got: usize },
-    #[error("The topics was incorrect. Got: {got:?} Expected: {expected:?}")]
-    IncorrectTopic { got: String, expected: String },
-    #[error("Event decoding Failed")]
-    FailedEventDecoding(#[from] abi::Error),
+use error_stack::Context;
+
+#[derive(Debug)]
+pub enum ListenerError {
+    Erc165ResError,
+    ProviderError,
 }
+
+impl fmt::Display for ListenerError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use ListenerError::*;
+        match self {
+            Erc165ResError => write!(fmt, "Listener error"),
+            ProviderError => write!(fmt, "Provider error"),
+        }
+    }
+}
+
+impl Context for ListenerError {}

@@ -1,5 +1,6 @@
 use ethers::abi::RawLog;
 
+use error_stack::{IntoReport, Report, ResultExt};
 use ethers::core::types::*;
 use ethers::prelude::{EthEvent, Log, U256};
 use ethers::utils::keccak256;
@@ -22,15 +23,17 @@ pub struct TransferBatchEvent {
     value: Vec<U256>,
 }
 
-impl TryFrom<&Log> for TransferBatchEvent {
-    type Error = EventParsingError;
-
-    fn try_from(log: &Log) -> Result<Self, Self::Error> {
+impl TransferBatchEvent {
+    pub fn try_from(log: &Log) -> Result<TransferBatchEvent, Report<EventParsingError>> {
         TransferBatchEvent::decode_log(&RawLog {
             data: log.data.to_vec(),
             topics: log.topics.clone(),
         })
-        .map_err(|e| EventParsingError::FailedEventDecoding(e))
+        .report()
+        .attach_printable_lazy(|| {
+            format!("Failed to decode Transfer Batch Event From Log: {:?}", log)
+        })
+        .change_context(EventParsingError::FailedEventDecoding)
     }
 }
 

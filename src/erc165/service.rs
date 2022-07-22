@@ -1,6 +1,7 @@
 use crate::erc165::erc165_interfaces::Erc165Interface;
 use crate::erc165::errors::Erc165ServiceErrors;
 use async_trait::async_trait;
+use error_stack::Result;
 use ethers::prelude::H160;
 use std::collections::{HashMap, HashSet};
 

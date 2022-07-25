@@ -1,6 +1,7 @@
 mod errors;
 mod uri_getter;
 use std::sync::Arc;
+use std::time::Duration;
 
 use crate::erc165::service::Erc165Service;
 use crate::ethdto::repo::EthRepo;
@@ -50,6 +51,7 @@ impl Listener {
             .report()
             .attach_printable_lazy(|| format!("Failed to connect to RPC: {}", chain.rpc))
             .change_context(ListenerError::ProviderError)?;
+        let provider = provider.interval(Duration::from_micros(100));
         let erc165_nservice = provider.clone().into();
         let erc165_service = Erc165CacheService::new(pool.clone(), erc165_nservice, chain_id);
 

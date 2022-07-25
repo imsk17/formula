@@ -4,11 +4,10 @@ use crate::schema::ethdto::dsl::ethdto;
 use crate::schema::ethdto::dsl::{chain_id, contract, owner};
 use crate::schema::ethdto::token_id;
 use diesel::result::Error;
-
-use crate::ethdto::errors::RepoError;
 use diesel::{OptionalExtension, QueryDsl, RunQueryDsl};
 
 use super::dto::{EthDto, NewEthDto};
+use super::errors::RepoError;
 
 pub struct EthRepo {
     pool: PgPool,
@@ -77,6 +76,13 @@ impl EthRepo {
                 match opt {
                     Some(ent) => {
                         if nft.updated_at > ent.updated_at {
+                            // Its a BURN
+                            if nft.owner == "0x0000000000000000000000000000000000000000" {
+                                diesel::delete(&ent)
+                                    .execute(&*self.pool.get().unwrap())
+                                    .unwrap();
+                                continue;
+                            }
                             diesel::update(&ent)
                                 .set(owner.eq(&nft.owner))
                                 .execute(&*self.pool.get().unwrap())

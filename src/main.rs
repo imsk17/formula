@@ -29,30 +29,29 @@ async fn main() {
         .compact()
         .with_line_number(true)
         .with_thread_names(true)
+        .with_thread_ids(true)
         .init();
 
     let config = AppConfig::from_json5("config").unwrap();
 
     let cm = ConnectionManager::<PgConnection>::new(&config.db);
 
-    debug!("Config Read Successfully. {:?}", config.clone());
+    debug!("Config Read Successfully. {:?}", &config);
 
     let pool = r2d2::Pool::builder().build(cm).unwrap();
 
-    let mut listeners = vec![];
+    let chains = config.chains;
 
-    for chain in config.chains.clone().into_iter() {
+    let listeners = chains.into_iter().map(|chain| {
         let pool = pool.clone();
         let eth_repo = EthRepo::new(pool.clone());
-        let chain_id = chain.chain_id;
-
-        let handle = tokio::spawn(async move {
-            let listener = Listener::try_from(&chain, pool.clone(), chain_id, eth_repo)
+        tokio::spawn(async move {
+            let listener = Listener::try_from(&chain, pool.clone(), chain.chain_id, eth_repo)
                 .await
                 .unwrap();
             listener.listen().await
-        });
-        listeners.push(handle);
-    }
+        })
+    });
+
     let _ = futures::future::join_all(listeners).await;
 }

@@ -13,17 +13,18 @@ use super::errors::EventParsingError;
 )]
 pub struct TransferSingleEvent {
     #[ethevent(indexed)]
-    operator: Address,
+    pub operator: Address,
     #[ethevent(indexed)]
-    from: Address,
+    pub from: Address,
     #[ethevent(indexed)]
-    to: Address,
-    id: U256,
-    value: U256,
+    pub to: Address,
+    pub id: U256,
+    pub value: U256,
 }
 
-impl TransferSingleEvent {
-    pub fn try_from(log: &Log) -> Result<TransferSingleEvent, Report<EventParsingError>> {
+impl TryFrom<&Log> for TransferSingleEvent {
+    type Error = Report<EventParsingError>;
+    fn try_from(log: &Log) -> Result<TransferSingleEvent, Report<EventParsingError>> {
         TransferSingleEvent::decode_log(&RawLog {
             data: log.data.to_vec(),
             topics: log.topics.clone(),

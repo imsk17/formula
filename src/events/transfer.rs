@@ -11,8 +11,9 @@ pub struct TransferEvent {
     pub value: U256,
 }
 
-impl TransferEvent {
-    pub fn try_from(log: &Log) -> Result<Self, EventParsingError> {
+impl TryFrom<&Log> for TransferEvent {
+    type Error = EventParsingError;
+    fn try_from(log: &Log) -> Result<Self, EventParsingError> {
         if log.topics.len() != 4 {
             return Err(EventParsingError::IncorrectTopicsLength {
                 got: log.topics.len(),

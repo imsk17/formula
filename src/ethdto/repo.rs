@@ -9,6 +9,7 @@ use diesel::{OptionalExtension, QueryDsl, RunQueryDsl};
 use super::dto::{EthDto, NewEthDto};
 use super::errors::RepoError;
 
+#[derive(Clone)]
 pub struct EthRepo {
     pool: PgPool,
 }
@@ -39,7 +40,7 @@ impl EthRepo {
             let ent = ethdto
                 .filter(chain_id.eq(&nft.chain_id))
                 .filter(contract.eq(&nft.contract))
-                .filter(owner.eq(&nft.owner))
+                .filter(token_id.eq(&nft.token_id))
                 .first::<EthDto>(&*self.pool.get().unwrap())
                 .optional();
             if let Ok(opt) = ent {

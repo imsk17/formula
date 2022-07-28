@@ -14,17 +14,18 @@ use super::errors::EventParsingError;
 )]
 pub struct TransferBatchEvent {
     #[ethevent(indexed)]
-    operator: Address,
+    pub operator: Address,
     #[ethevent(indexed)]
-    from: Address,
+    pub from: Address,
     #[ethevent(indexed)]
-    to: Address,
-    id: Vec<U256>,
-    value: Vec<U256>,
+    pub to: Address,
+    pub id: Vec<U256>,
+    pub value: Vec<U256>,
 }
 
-impl TransferBatchEvent {
-    pub fn try_from(log: &Log) -> Result<TransferBatchEvent, Report<EventParsingError>> {
+impl TryFrom<&Log> for TransferBatchEvent {
+    type Error = Report<EventParsingError>;
+    fn try_from(log: &Log) -> Result<TransferBatchEvent, Report<EventParsingError>> {
         TransferBatchEvent::decode_log(&RawLog {
             data: log.data.to_vec(),
             topics: log.topics.clone(),

@@ -22,6 +22,7 @@ use ethers::utils;
 use super::erc165_interfaces::*;
 use super::network_service::Erc165NetworkService;
 
+#[derive(Clone)]
 pub struct Erc165CacheService {
     db: Arc<r2d2::Pool<ConnectionManager<PgConnection>>>,
     network_service: Erc165NetworkService,
@@ -44,10 +45,7 @@ impl Erc165CacheService {
 
 #[async_trait::async_trait]
 impl Erc165Service for Erc165CacheService {
-    async fn supported_traits(
-        &self,
-        contracts: &[&H160],
-    ) -> Result<Erc165Res, Erc165ServiceErrors> {
+    async fn supported_traits(&self, contracts: &[H160]) -> Result<Erc165Res, Erc165ServiceErrors> {
         use crate::diesel::ExpressionMethods;
         use crate::schema::erc165dto::dsl::erc165dto;
 

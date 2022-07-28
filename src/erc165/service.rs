@@ -9,6 +9,5 @@ pub type Erc165Res = HashMap<String, HashSet<Erc165Interface>>;
 
 #[async_trait]
 pub trait Erc165Service {
-    async fn supported_traits(&self, contracts: &[&H160])
-        -> Result<Erc165Res, Erc165ServiceErrors>;
+    async fn supported_traits(&self, contracts: &[H160]) -> Result<Erc165Res, Erc165ServiceErrors>;
 }

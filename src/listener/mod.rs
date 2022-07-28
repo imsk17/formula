@@ -1,24 +1,28 @@
 mod errors;
+mod ethnftid;
 mod uri_getter;
-use std::sync::Arc;
 use std::time::Duration;
+use std::{str::FromStr, sync::Arc};
 
 use crate::erc165::service::Erc165Service;
-use crate::ethdto::repo::EthRepo;
 use crate::listener::uri_getter::eth_nft_uri_getter;
-use crate::{config::Chain, listener::uri_getter::EthNftId};
+use crate::{config::Chain, ethdto::repo::EthRepo};
+
+use ethnftid::EthNftId;
 
 use crate::erc165::cache_service::Erc165CacheService;
-
 use crate::events::transfer::TransferEvent;
 use crate::events::transfer_batch::TransferBatchEvent;
 use crate::events::transfer_single::TransferSingleEvent;
 use async_trait::async_trait;
 use diesel::{r2d2, PgConnection};
 use error_stack::{IntoReport, Result, ResultExt};
-use ethers::prelude::{Filter, Middleware, Provider, StreamExt, ValueOrArray, Ws};
-use ethers::utils;
-use tracing::warn;
+use ethers::{
+    prelude::{Filter, Middleware, Provider, StreamExt, ValueOrArray, Ws, H160, U256},
+    utils::to_checksum,
+};
+use futures::SinkExt;
+use tracing::info;
 
 use self::errors::ListenerError;
 
@@ -72,46 +76,107 @@ impl Listenable for Listener {
     async fn listen(&self) -> Result<(), ListenerError> {
         use ValueOrArray::*;
         let mut filter = Filter::new();
+        let (mut tx, mut rx) = futures::channel::mpsc::unbounded();
         filter = filter.topic0(Array(vec![
             TransferEvent::topic_h256(),
             TransferSingleEvent::topic_h256(),
             TransferBatchEvent::topic_h256(),
         ]));
-        let mut subscription = self.provider.subscribe_logs(&filter).await.unwrap();
+        let provider = self.provider.clone();
+        let cid = self.chain_id;
+        let sender = tokio::spawn(async move {
+            let mut subscription = provider.subscribe_logs(&filter).await.unwrap();
 
-        while let Some(log) = subscription.next().await {
-            if log.topics.len() == 4 {
-                if log.topics[0] == TransferEvent::topic_h256() {
-                    let event = TransferEvent::try_from(&log).unwrap();
-                    let id = EthNftId {
-                        chain_id: self.chain_id,
+            while let Some(log) = subscription.next().await {
+                if let Ok(event) = TransferEvent::try_from(&log) {
+                    let ethnft = EthNftId {
+                        chain_id: cid,
+                        contract: to_checksum(&log.address, None),
+                        owner: to_checksum(&event.to, None),
                         token_id: event.value.to_string(),
-                        contract: utils::to_checksum(&log.address, None),
-                        owner: utils::to_checksum(&event.to, None),
                     };
-                    let erc165_res = self
-                        .erc165_service
-                        .supported_traits(&[&log.address])
-                        .await
-                        .change_context(ListenerError::Erc165ResError)?;
-                    if erc165_res.len() == 0 {
-                        warn!("No supported traits for contract {}", log.address);
-                        continue;
+                    tx.send(ethnft).await.ok();
+                }
+
+                if let Ok(event) = TransferSingleEvent::try_from(&log) {
+                    if event.value.eq(&U256::one()) {
+                        let ethnft = EthNftId {
+                            chain_id: cid,
+                            contract: to_checksum(&log.address, None),
+                            owner: to_checksum(&event.to, None),
+                            token_id: event.value.to_string(),
+                        };
+                        tx.send(ethnft).await.ok();
+                    };
+                }
+
+                if let Ok(event) = TransferBatchEvent::try_from(&log) {
+                    for (i, v) in event.id.iter().enumerate() {
+                        if event.value[i].eq(&U256::one()) {
+                            let ethnft = EthNftId {
+                                chain_id: cid,
+                                contract: to_checksum(&log.address, None),
+                                owner: to_checksum(&event.to, None),
+                                token_id: v.to_string(),
+                            };
+                            tx.send(ethnft).await.ok();
+                        }
                     }
-                    let res =
-                        eth_nft_uri_getter(self.provider.clone(), erc165_res.clone(), id).await;
-                    if let Some(newdto) = res {
-                        self.eth_repo.in_or_up_gen(&[newdto]).unwrap();
-                    }
-                } else if log.topics[0] == TransferSingleEvent::topic_h256() {
-                    let _event = TransferSingleEvent::try_from(&log).unwrap();
-                    continue;
-                } else if log.topics[0] == TransferBatchEvent::topic_h256() {
-                    let _event = TransferBatchEvent::try_from(&log).unwrap();
-                    continue;
+                    // tx.send(event).await.ok()
                 }
             }
-        }
+        });
+        let provider = self.provider.clone();
+        let erc165_service = self.erc165_service.clone();
+        let ethrepo = self.eth_repo.clone();
+        let receiver = tokio::spawn(async move {
+            let mut subscription = provider.subscribe_blocks().await.unwrap();
+
+            while let Some(b) = subscription.next().await {
+                if let Some((contracts, ids)) = (&mut rx)
+                    .ready_chunks(1000)
+                    .map(|logs| {
+                        let contracts = logs
+                            .clone()
+                            .iter()
+                            .map(|log| H160::from_str(&log.contract).unwrap())
+                            .collect::<Vec<_>>();
+                        info!(
+                            "Got {:?} EthNfts in block: {:?}",
+                            logs.len(),
+                            b.number.unwrap()
+                        );
+                        (contracts, logs)
+                    })
+                    .next()
+                    .await
+                {
+                    let provider = provider.clone();
+                    let erc165_service = erc165_service.clone();
+                    let ethrepo = ethrepo.clone();
+                    tokio::spawn(async move {
+                        let erc165res = erc165_service.supported_traits(&*contracts).await.unwrap();
+                        let handles = ids.into_iter().map(|id| async {
+                            let erc165res = erc165res.clone();
+                            let provider = provider.clone();
+                            let ethrepo = ethrepo.clone();
+                            tokio::spawn(async move {
+                                let res =
+                                    eth_nft_uri_getter(provider.clone(), erc165res.clone(), id)
+                                        .await;
+                                if let Some(newdto) = res {
+                                    ethrepo.in_or_up_gen(&[newdto]).unwrap()
+                                }
+                            })
+                        });
+                        futures::future::join_all(handles).await;
+                    });
+                    // .await
+                    // .ok();
+                }
+            }
+        });
+        let _ = tokio::join!(sender, receiver);
         Ok(())
     }
 }

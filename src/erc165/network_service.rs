@@ -12,6 +12,7 @@ use error_stack::{IntoReport, Result, ResultExt};
 use ethers::prelude::{Provider, Ws, H160};
 use ethers::utils;
 
+#[derive(Clone)]
 pub struct Erc165NetworkService {
     provider: Arc<Provider<Ws>>,
 }
@@ -26,14 +27,11 @@ impl From<Provider<Ws>> for Erc165NetworkService {
 
 #[async_trait::async_trait]
 impl Erc165Service for Erc165NetworkService {
-    async fn supported_traits(
-        &self,
-        contracts: &[&H160],
-    ) -> Result<Erc165Res, Erc165ServiceErrors> {
+    async fn supported_traits(&self, contracts: &[H160]) -> Result<Erc165Res, Erc165ServiceErrors> {
         let mut res: Erc165Res = HashMap::new();
         for contract_addr in contracts {
             let mut set = HashSet::<Erc165Interface>::new();
-            let contract = ERC165Contract::new(**contract_addr, self.provider.clone());
+            let contract = ERC165Contract::new(*contract_addr, self.provider.clone());
             let supports_erc165: bool = contract
                 .supports_interface(*ERC165)
                 .call()

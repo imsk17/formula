@@ -1,10 +1,7 @@
 use std::{collections::HashSet, str::FromStr, sync::Arc};
 
 use chrono::Utc;
-use ethers::{
-    prelude::{Provider, Ws, H160, U256},
-    utils,
-};
+use ethers::prelude::{Provider, Ws, H160, U256};
 
 use crate::{
     contracts::{ERC1155Contract, ERC721Contract},
@@ -12,12 +9,7 @@ use crate::{
     ethdto::dto::NewEthDto,
 };
 
-pub struct EthNftId {
-    pub chain_id: i64,
-    pub token_id: String,
-    pub contract: String,
-    pub owner: String,
-}
+use super::ethnftid::EthNftId;
 
 pub async fn eth_nft_uri_getter(
     provider: Provider<Ws>,
@@ -55,7 +47,7 @@ pub async fn eth_nft_uri_getter(
         });
     } else if traits.contains(&Erc165Interface::ERC1155) {
         let contract = ERC1155Contract::new(
-            H160::from_slice(&utils::format_bytes32_string(&id.contract).unwrap()),
+            H160::from_str(&id.contract).unwrap(),
             Arc::new(provider.clone()),
         );
         let token = U256::from_str(&id.token_id).unwrap();

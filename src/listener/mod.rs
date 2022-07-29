@@ -127,6 +127,8 @@ impl Listenable for Listener {
         let provider = self.provider.clone();
         let erc165_service = self.erc165_service.clone();
         let ethrepo = self.eth_repo.clone();
+        let cname = self.name.clone();
+        let cid = self.chain_id;
         let receiver = tokio::spawn(async move {
             let mut subscription = provider.subscribe_blocks().await.unwrap();
 
@@ -140,9 +142,11 @@ impl Listenable for Listener {
                             .map(|log| H160::from_str(&log.contract).unwrap())
                             .collect::<Vec<_>>();
                         info!(
-                            "Got {:?} EthNfts in block: {:?}",
+                            "Got {:?} EthNfts in block: {:?} for {}[{}]",
                             logs.len(),
-                            b.number.unwrap()
+                            b.number.unwrap(),
+                            cname,
+                            cid
                         );
                         (contracts, logs)
                     })

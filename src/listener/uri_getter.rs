@@ -38,9 +38,13 @@ pub async fn eth_nft_uri_getter(
             chain_id: id.chain_id,
             contract: id.contract,
             contract_type: "ERC721".to_string(),
-            name: if name == "" { None } else { Some(name) },
-            symbol: if symbol == "" { None } else { Some(symbol) },
-            uri: if uri == "" { None } else { Some(uri) },
+            name: if name.is_empty() { None } else { Some(name) },
+            symbol: if symbol.is_empty() {
+                None
+            } else {
+                Some(symbol)
+            },
+            uri: if uri.is_empty() { None } else { Some(uri) },
             owner: id.owner,
             token_id: id.token_id,
             updated_at: Utc::now().naive_utc(),
@@ -54,14 +58,19 @@ pub async fn eth_nft_uri_getter(
         let uri_txn = contract.uri(token);
 
         let uri: String = uri_txn.call().await.unwrap_or_default();
+        let sanitized = uri.replace("{id}", &format!("{:0>64}", token.to_string()));
 
         ret = Some(NewEthDto {
             chain_id: id.chain_id,
             contract: id.contract,
-            contract_type: "ERC721".to_string(),
+            contract_type: "ERC1155".to_string(),
             name: None,
             symbol: None,
-            uri: if uri == "" { None } else { Some(uri) },
+            uri: if sanitized.is_empty() {
+                None
+            } else {
+                Some(sanitized)
+            },
             owner: id.owner,
             token_id: id.token_id,
             updated_at: Utc::now().naive_utc(),

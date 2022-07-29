@@ -5,6 +5,7 @@ use crate::schema::ethdto::dsl::{chain_id, contract, owner};
 use crate::schema::ethdto::token_id;
 use diesel::result::Error;
 use diesel::{OptionalExtension, QueryDsl, RunQueryDsl};
+use error_stack::{IntoReport, ResultExt};
 
 use super::dto::{EthDto, NewEthDto};
 use super::errors::RepoError;
@@ -94,7 +95,13 @@ impl EthRepo {
                     None => {
                         diesel::insert_into(ethdto)
                             .values(nft)
+                            .on_conflict((chain_id, token_id, contract))
+                            .do_update()
+                            .set(owner.eq(&nft.owner))
                             .execute(&*self.pool.get().unwrap())
+                            .report()
+                            .attach_printable_lazy(|| format!("Failed to insert {nft:?}"))
+                            .change_context(RepoError::DatabaseError)
                             .unwrap();
                         return Ok(());
                     }

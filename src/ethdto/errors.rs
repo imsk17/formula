@@ -1,6 +1,7 @@
 #[derive(Debug)]
 pub enum RepoError {
     NoEntityFound,
+    DatabaseError,
 }
 
 use std::fmt;
@@ -12,6 +13,7 @@ impl fmt::Display for RepoError {
         use RepoError::*;
         match self {
             NoEntityFound => write!(fmt, "No such requested entity found"),
+            DatabaseError => write!(fmt, "Database error occured"),
         }
     }
 }

@@ -1,7 +1,6 @@
 mod errors;
 mod ethnftid;
 mod uri_getter;
-use std::time::Duration;
 use std::{str::FromStr, sync::Arc};
 
 use crate::erc165::service::Erc165Service;
@@ -55,7 +54,6 @@ impl Listener {
             .report()
             .attach_printable_lazy(|| format!("Failed to connect to RPC: {}", chain.rpc))
             .change_context(ListenerError::ProviderError)?;
-        let provider = provider.interval(Duration::from_micros(100));
         let erc165_nservice = provider.clone().into();
         let erc165_service = Erc165CacheService::new(pool.clone(), erc165_nservice, chain_id);
 
@@ -161,12 +159,13 @@ impl Listenable for Listener {
                             let provider = provider.clone();
                             let ethrepo = ethrepo.clone();
                             tokio::spawn(async move {
-                                let res =
-                                    eth_nft_uri_getter(provider.clone(), erc165res.clone(), id)
-                                        .await;
-                                if let Some(newdto) = res {
-                                    ethrepo.in_or_up_gen(&[newdto]).unwrap()
-                                }
+                                let res = eth_nft_uri_getter(provider, erc165res, id).await;
+                                tokio::task::spawn_blocking(move || {
+                                    if let Some(newdto) = res {
+                                        ethrepo.in_or_up_gen(&[newdto]).unwrap()
+                                    }
+                                })
+                                .await
                             })
                         });
                         futures::future::join_all(handles).await;

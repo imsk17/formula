@@ -1,7 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use std::sync::Arc;
-
 use crate::erc165::errors::Erc165ServiceErrors;
 use crate::erc165::model::{Erc165Dto, NewErc165Dto};
 use crate::erc165::service::Erc165Res;
@@ -24,19 +22,19 @@ use super::network_service::Erc165NetworkService;
 
 #[derive(Clone)]
 pub struct Erc165CacheService {
-    db: Arc<r2d2::Pool<ConnectionManager<PgConnection>>>,
+    db: r2d2::Pool<ConnectionManager<PgConnection>>,
     network_service: Erc165NetworkService,
     chain_id: i64,
 }
 
 impl Erc165CacheService {
     pub fn new(
-        conn: Pool<ConnectionManager<PgConnection>>,
+        db: Pool<ConnectionManager<PgConnection>>,
         network_service: Erc165NetworkService,
         chainid: i64,
     ) -> Self {
         Erc165CacheService {
-            db: Arc::new(conn),
+            db,
             network_service,
             chain_id: chainid,
         }

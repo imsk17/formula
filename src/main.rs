@@ -1,4 +1,6 @@
 #![allow(dead_code)]
+use std::sync::Arc;
+
 use crate::{
     config::AppConfig,
     ethdto::repo::EthRepo,
@@ -32,7 +34,7 @@ async fn main() {
         .with_thread_ids(true)
         .init();
 
-    let config = AppConfig::from_json5("config").unwrap();
+    let config = Arc::new(AppConfig::from_json5("config").unwrap());
 
     let cm = ConnectionManager::<PgConnection>::new(&config.db);
 
@@ -40,7 +42,7 @@ async fn main() {
 
     let pool = r2d2::Pool::builder().build(cm).unwrap();
 
-    let chains = config.chains;
+    let chains = config.chains.clone();
 
     let listeners = chains.into_iter().map(|chain| {
         let pool = pool.clone();

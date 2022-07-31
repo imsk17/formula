@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use crate::{
     config::AppConfig,
-    ethdto::repo::EthRepo,
     listener::{Listenable, Listener},
 };
 
@@ -23,6 +22,7 @@ mod ethdto;
 mod events;
 mod listener;
 mod schema;
+mod uri_getter;
 
 #[tokio::main]
 async fn main() {
@@ -46,9 +46,8 @@ async fn main() {
 
     let listeners = chains.into_iter().map(|chain| {
         let pool = pool.clone();
-        let eth_repo = EthRepo::new(pool.clone());
         tokio::spawn(async move {
-            let listener = Listener::try_from(&chain, pool.clone(), chain.chain_id, eth_repo)
+            let listener = Listener::try_from(&chain, pool.clone(), chain.chain_id)
                 .await
                 .unwrap();
             listener.listen().await

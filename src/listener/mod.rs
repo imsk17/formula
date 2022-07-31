@@ -1,10 +1,10 @@
 mod errors;
-mod ethnftid;
+pub mod ethnftid;
 mod uri_getter;
 use std::{str::FromStr, sync::Arc};
 
 use crate::erc165::service::Erc165Service;
-use crate::listener::uri_getter::eth_nft_uri_getter;
+use crate::uri_getter::eth_uri_getter::EthUriGetter;
 use crate::{config::Chain, ethdto::repo::EthRepo};
 
 use ethnftid::EthNftId;
@@ -47,7 +47,6 @@ impl Listener {
         chain: &Chain,
         pool: PgPool,
         chain_id: i64,
-        eth_repo: EthRepo,
     ) -> Result<Self, ListenerError> {
         let provider = Provider::<Ws>::connect(&chain.rpc)
             .await
@@ -56,6 +55,8 @@ impl Listener {
             .change_context(ListenerError::ProviderError)?;
         let erc165_nservice = provider.clone().into();
         let erc165_service = Erc165CacheService::new(pool.clone(), erc165_nservice, chain_id);
+        let uri_getter = EthUriGetter::new(provider.clone());
+        let eth_repo = EthRepo::new(pool.clone(), uri_getter);
 
         Ok(Self {
             provider,
@@ -153,29 +154,14 @@ impl Listenable for Listener {
                     .next()
                     .await
                 {
-                    let provider = provider.clone();
                     let erc165_service = erc165_service.clone();
                     let ethrepo = ethrepo.clone();
                     tokio::spawn(async move {
                         let erc165res = erc165_service.supported_traits(&*contracts).await.unwrap();
-                        let handles = ids.into_iter().map(|id| async {
-                            let erc165res = erc165res.clone();
-                            let provider = provider.clone();
-                            let ethrepo = ethrepo.clone();
-                            tokio::spawn(async move {
-                                let res = eth_nft_uri_getter(provider, erc165res, id).await;
-                                tokio::task::spawn_blocking(move || {
-                                    if let Some(newdto) = res {
-                                        ethrepo.in_or_up_gen(&[newdto]).unwrap()
-                                    }
-                                })
-                                .await
-                            })
-                        });
-                        futures::future::join_all(handles).await;
-                    });
-                    // .await
-                    // .ok();
+                        let _ = ethrepo.in_or_up_gen(&ids, erc165res).await;
+                    })
+                    .await
+                    .ok();
                 }
             }
         });

@@ -6,6 +6,7 @@ use error_stack::Context;
 pub enum AppConfigError {
     BuildConfigFromFile,
     DeserializeConfigIntoStruct,
+    FailedToCreateDB,
 }
 
 impl fmt::Display for AppConfigError {
@@ -14,6 +15,7 @@ impl fmt::Display for AppConfigError {
         match self {
             BuildConfigFromFile => write!(fmt, "Failed to build config from file"),
             DeserializeConfigIntoStruct => write!(fmt, "Failed to deserialize config into struct"),
+            FailedToCreateDB => write!(fmt, "Failed to create Database pool"),
         }
     }
 }

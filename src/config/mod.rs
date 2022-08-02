@@ -1,9 +1,13 @@
 use config::Config;
 
+use crate::listener::PgPool;
+use diesel::r2d2;
+use diesel::{r2d2::ConnectionManager, PgConnection};
 use error::AppConfigError;
 use error_stack::{IntoReport, Result, ResultExt};
 use serde::Deserialize;
 use tracing::{info, instrument};
+use tracing_subscriber::EnvFilter;
 
 mod error;
 
@@ -37,5 +41,25 @@ impl AppConfig {
             .try_deserialize::<AppConfig>()
             .report()
             .change_context(AppConfigError::DeserializeConfigIntoStruct)
+    }
+
+    pub fn db_pool(&self) -> Result<PgPool, AppConfigError> {
+        let cm = ConnectionManager::<PgConnection>::new(&self.db);
+
+        r2d2::Pool::builder()
+            .build(cm)
+            .report()
+            .attach_printable_lazy(|| format!("Unable to connect to DB URI: {}", self.db))
+            .change_context(AppConfigError::FailedToCreateDB)
+    }
+
+    pub fn setup_logging() -> () {
+        tracing_subscriber::fmt()
+            .with_env_filter(EnvFilter::from_default_env())
+            .compact()
+            .with_line_number(true)
+            .with_thread_names(true)
+            .with_thread_ids(true)
+            .init()
     }
 }

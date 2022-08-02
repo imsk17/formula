@@ -1,6 +1,5 @@
 mod errors;
 pub mod ethnftid;
-mod uri_getter;
 use std::{str::FromStr, sync::Arc};
 
 use crate::erc165::service::Erc165Service;

@@ -18,7 +18,7 @@ pub struct Erc165Dto {
 }
 
 #[derive(Insertable, Debug, Clone)]
-#[table_name = "erc165dto"]
+#[diesel(table_name = erc165dto)]
 pub struct NewErc165Dto {
     pub contract: String,
     pub chain_id: i64,

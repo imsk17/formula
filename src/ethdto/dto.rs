@@ -2,7 +2,7 @@ use crate::schema::ethdto;
 use chrono::NaiveDateTime;
 
 #[derive(Queryable, Debug, Clone, Identifiable)]
-#[table_name = "ethdto"]
+#[diesel(table_name = ethdto)]
 pub struct EthDto {
     pub id: i32,
     pub contract: String,
@@ -17,7 +17,7 @@ pub struct EthDto {
 }
 
 #[derive(Insertable, Debug, Clone)]
-#[table_name = "ethdto"]
+#[diesel(table_name = ethdto)]
 pub struct NewEthDto {
     pub contract: String,
     pub chain_id: i64,

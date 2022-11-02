@@ -39,7 +39,7 @@ impl EthRepo {
         ethdto
             .filter(chain_id.eq(chain))
             .filter(owner.eq(owner_address.clone()))
-            .load(&self._get_conn()?)
+            .load(&mut self._get_conn()?)
             .into_report()
             .attach_printable_lazy(|| {
                 format!(
@@ -56,7 +56,7 @@ impl EthRepo {
                 .filter(chain_id.eq(&nft.chain_id))
                 .filter(contract.eq(&nft.contract))
                 .filter(token_id.eq(&nft.token_id))
-                .first::<EthDto>(&self._get_conn()?)
+                .first::<EthDto>(&mut self._get_conn()?)
                 .optional()
                 .into_report()
                 .attach_printable_lazy(|| {
@@ -68,7 +68,7 @@ impl EthRepo {
                 Some(ent) => {
                     diesel::update(&ent)
                         .set(owner.eq(&nft.owner))
-                        .execute(&self._get_conn()?)
+                        .execute(&mut self._get_conn()?)
                         .into_report()
                         .attach_printable_lazy(|| {
                             format!("Failed to update {ent:?} with values {nft:?}")
@@ -78,7 +78,7 @@ impl EthRepo {
                 None => {
                     diesel::insert_into(ethdto)
                         .values(nft)
-                        .execute(&self._get_conn()?)
+                        .execute(&mut self._get_conn()?)
                         .into_report()
                         .attach_printable_lazy(|| format!("Failed to insert {nft:?}"))
                         .change_context(RepoError::DatabaseError)?;
@@ -92,14 +92,14 @@ impl EthRepo {
         debug!("Upserting {} nfts into the database", ids.len());
         for id in ids {
             let opt = self.uri_getter.get_uri(res.clone(), id.clone()).await;
-            let pool = self._get_conn()?;
+            let mut pool = self._get_conn()?;
             let handles: JoinHandle<Result<(), _>> = tokio::task::spawn_blocking(move || {
                 if let Some(nft) = opt {
                     let opt = ethdto
                         .filter(chain_id.eq(&nft.chain_id))
                         .filter(contract.eq(&nft.contract))
                         .filter(token_id.eq(&nft.token_id))
-                        .first::<EthDto>(&pool)
+                        .first::<EthDto>(&mut pool)
                         .optional()
                         .into_report()
                         .attach_printable_lazy(|| {
@@ -113,7 +113,7 @@ impl EthRepo {
                                 // Its a BURN
                                 if nft.owner == "0x0000000000000000000000000000000000000000" {
                                     diesel::delete(&ent)
-                                        .execute(&pool)
+                                        .execute(&mut pool)
                                         .into_report()
                                         .attach_printable_lazy(|| {
                                             format!("Failed to delete {ent:?}")
@@ -122,7 +122,7 @@ impl EthRepo {
                                 }
                                 diesel::update(&ent)
                                     .set(owner.eq(&nft.owner))
-                                    .execute(&pool)
+                                    .execute(&mut pool)
                                     .into_report()
                                     .attach_printable_lazy(|| {
                                         format!("Failed to update {ent:?} with values {nft:?}")
@@ -136,7 +136,7 @@ impl EthRepo {
                                 .on_conflict((chain_id, token_id, contract))
                                 .do_update()
                                 .set(owner.eq(&nft.owner))
-                                .execute(&pool)
+                                .execute(&mut pool)
                                 .into_report()
                                 .attach_printable_lazy(|| format!("Failed to insert {nft:?}"))
                                 .change_context(RepoError::DatabaseError)?;

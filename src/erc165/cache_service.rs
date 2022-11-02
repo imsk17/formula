@@ -53,7 +53,7 @@ impl Erc165Service for Erc165CacheService {
             let entity = erc165dto
                 .filter(contract.eq(utils::to_checksum(c, None)))
                 .filter(chain_id.eq(self.chain_id))
-                .first::<Erc165Dto>(&*self.db.get().unwrap());
+                .first::<Erc165Dto>(&mut self.db.get().unwrap());
 
             if let Ok(e) = entity {
                 let ent: (String, HashSet<Erc165Interface>) = e.into();
@@ -72,7 +72,7 @@ impl Erc165Service for Erc165CacheService {
         diesel::insert_into(erc165dto)
             .values(&insert)
             .on_conflict_do_nothing()
-            .execute(&*self.db.get().unwrap())
+            .execute(&mut self.db.get().unwrap())
             .into_report()
             .attach_printable_lazy(|| {
                 format!("Failed to insert values {:?} into erc165dto table", insert)

@@ -73,7 +73,7 @@ impl Erc165Service for Erc165CacheService {
             .values(&insert)
             .on_conflict_do_nothing()
             .execute(&*self.db.get().unwrap())
-            .report()
+            .into_report()
             .attach_printable_lazy(|| {
                 format!("Failed to insert values {:?} into erc165dto table", insert)
             })

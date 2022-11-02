@@ -34,12 +34,12 @@ impl AppConfig {
         let config = Config::builder()
             .add_source(config::File::with_name(filename))
             .build()
-            .report()
+            .into_report()
             .change_context(AppConfigError::BuildConfigFromFile)?;
 
         config
             .try_deserialize::<AppConfig>()
-            .report()
+            .into_report()
             .change_context(AppConfigError::DeserializeConfigIntoStruct)
     }
 
@@ -48,7 +48,7 @@ impl AppConfig {
 
         r2d2::Pool::builder()
             .build(cm)
-            .report()
+            .into_report()
             .attach_printable_lazy(|| format!("Unable to connect to DB URI: {}", self.db))
             .change_context(AppConfigError::FailedToCreateDB)
     }

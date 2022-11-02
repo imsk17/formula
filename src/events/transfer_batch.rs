@@ -30,7 +30,7 @@ impl TryFrom<&Log> for TransferBatchEvent {
             data: log.data.to_vec(),
             topics: log.topics.clone(),
         })
-        .report()
+        .into_report()
         .attach_printable_lazy(|| {
             format!("Failed to decode Transfer Batch Event From Log: {:?}", log)
         })

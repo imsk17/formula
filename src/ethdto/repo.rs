@@ -31,7 +31,7 @@ impl EthRepo {
     fn _get_conn(&self) -> Result<PooledConnection<ConnectionManager<PgConnection>>, RepoError> {
         self.pool
             .get()
-            .report()
+            .into_report()
             .change_context(RepoError::FailedToGetConnection)
     }
 
@@ -40,7 +40,7 @@ impl EthRepo {
             .filter(chain_id.eq(chain))
             .filter(owner.eq(owner_address.clone()))
             .load(&self._get_conn()?)
-            .report()
+            .into_report()
             .attach_printable_lazy(|| {
                 format!(
                     "Failed to get NFTs for chain {} and owner {}",
@@ -58,7 +58,7 @@ impl EthRepo {
                 .filter(token_id.eq(&nft.token_id))
                 .first::<EthDto>(&self._get_conn()?)
                 .optional()
-                .report()
+                .into_report()
                 .attach_printable_lazy(|| {
                     format!("Encountered Error While Querying This NFT {:?}", nft)
                 })
@@ -69,7 +69,7 @@ impl EthRepo {
                     diesel::update(&ent)
                         .set(owner.eq(&nft.owner))
                         .execute(&self._get_conn()?)
-                        .report()
+                        .into_report()
                         .attach_printable_lazy(|| {
                             format!("Failed to update {ent:?} with values {nft:?}")
                         })
@@ -79,7 +79,7 @@ impl EthRepo {
                     diesel::insert_into(ethdto)
                         .values(nft)
                         .execute(&self._get_conn()?)
-                        .report()
+                        .into_report()
                         .attach_printable_lazy(|| format!("Failed to insert {nft:?}"))
                         .change_context(RepoError::DatabaseError)?;
                 }
@@ -101,7 +101,7 @@ impl EthRepo {
                         .filter(token_id.eq(&nft.token_id))
                         .first::<EthDto>(&pool)
                         .optional()
-                        .report()
+                        .into_report()
                         .attach_printable_lazy(|| {
                             format!("Encountered Error While Querying This NFT {:?}", nft)
                         })
@@ -114,7 +114,7 @@ impl EthRepo {
                                 if nft.owner == "0x0000000000000000000000000000000000000000" {
                                     diesel::delete(&ent)
                                         .execute(&pool)
-                                        .report()
+                                        .into_report()
                                         .attach_printable_lazy(|| {
                                             format!("Failed to delete {ent:?}")
                                         })
@@ -123,7 +123,7 @@ impl EthRepo {
                                 diesel::update(&ent)
                                     .set(owner.eq(&nft.owner))
                                     .execute(&pool)
-                                    .report()
+                                    .into_report()
                                     .attach_printable_lazy(|| {
                                         format!("Failed to update {ent:?} with values {nft:?}")
                                     })
@@ -137,7 +137,7 @@ impl EthRepo {
                                 .do_update()
                                 .set(owner.eq(&nft.owner))
                                 .execute(&pool)
-                                .report()
+                                .into_report()
                                 .attach_printable_lazy(|| format!("Failed to insert {nft:?}"))
                                 .change_context(RepoError::DatabaseError)?;
                         }

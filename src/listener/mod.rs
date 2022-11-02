@@ -49,7 +49,7 @@ impl Listener {
     ) -> Result<Self, ListenerError> {
         let provider = Provider::<Ws>::connect(&chain.rpc)
             .await
-            .report()
+            .into_report()
             .attach_printable_lazy(|| format!("Failed to connect to RPC: {}", chain.rpc))
             .change_context(ListenerError::ProviderError)?;
         let erc165_nservice = provider.clone().into();

@@ -44,7 +44,7 @@ impl Erc165Service for Erc165NetworkService {
                 .supports_interface(*ERC165N)
                 .call()
                 .await
-                .report()
+                .into_report()
                 .attach_printable_lazy(|| {
                     format!("Failed to query erc165n interface for {:?}", contract)
                 })
@@ -57,7 +57,7 @@ impl Erc165Service for Erc165NetworkService {
                 .supports_interface(*ERC721)
                 .call()
                 .await
-                .report()
+                .into_report()
                 .attach_printable_lazy(|| {
                     format!("Failed to query erc721 interface for {:?}", contract)
                 })
@@ -68,7 +68,7 @@ impl Erc165Service for Erc165NetworkService {
                     .supports_interface(*ERC721_METADATA)
                     .call()
                     .await
-                    .report()
+                    .into_report()
                     .attach_printable_lazy(|| {
                         format!(
                             "Failed to query erc721 metadata interface for {:?}",
@@ -83,7 +83,7 @@ impl Erc165Service for Erc165NetworkService {
                     .supports_interface(*ERC721_ENUMERABLE)
                     .call()
                     .await
-                    .report()
+                    .into_report()
                     .attach_printable_lazy(|| {
                         format!(
                             "Failed to query erc721 enumerable interface for {:?}",
@@ -102,7 +102,7 @@ impl Erc165Service for Erc165NetworkService {
                 .supports_interface(*ERC1155)
                 .call()
                 .await
-                .report()
+                .into_report()
                 .attach_printable_lazy(|| {
                     format!("Failed to query erc1155 interface for {:?}", contract)
                 })
@@ -113,7 +113,7 @@ impl Erc165Service for Erc165NetworkService {
                     .supports_interface(*ERC1155_METADATA)
                     .call()
                     .await
-                    .report()
+                    .into_report()
                     .attach_printable_lazy(|| {
                         format!(
                             "Failed to query erc1155 metadata interface for {:?}",

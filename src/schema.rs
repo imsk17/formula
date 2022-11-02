@@ -26,7 +26,4 @@ table! {
     }
 }
 
-allow_tables_to_appear_in_same_query!(
-    erc165dto,
-    ethdto,
-);
+allow_tables_to_appear_in_same_query!(erc165dto, ethdto,);

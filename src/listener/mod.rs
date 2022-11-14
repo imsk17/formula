@@ -6,6 +6,7 @@ use crate::erc165::service::Erc165Service;
 use crate::uri_getter::eth_uri_getter::EthUriGetter;
 use crate::{config::Chain, ethdto::repo::EthRepo};
 
+use ethers::providers::{Http, ProviderExt};
 use ethnftid::EthNftId;
 
 use crate::erc165::cache_service::Erc165CacheService;
@@ -14,9 +15,9 @@ use crate::events::transfer_batch::TransferBatchEvent;
 use crate::events::transfer_single::TransferSingleEvent;
 use async_trait::async_trait;
 use diesel::{r2d2, PgConnection};
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::Result;
 use ethers::{
-    prelude::{Filter, Middleware, Provider, StreamExt, ValueOrArray, Ws, H160, U256},
+    prelude::{Filter, Middleware, Provider, StreamExt, ValueOrArray, H160, U256},
     utils::to_checksum,
 };
 use futures::SinkExt;
@@ -34,7 +35,7 @@ pub type PgPool = r2d2::Pool<r2d2::ConnectionManager<PgConnection>>;
 pub struct Listener {
     pub name: String,
     pub rpc: String,
-    pub provider: Provider<Ws>,
+    pub provider: Provider<Http>,
     pub pool: Arc<PgPool>,
     pub chain_id: i64,
     pub erc165_service: Erc165CacheService,
@@ -47,11 +48,7 @@ impl Listener {
         pool: PgPool,
         chain_id: i64,
     ) -> Result<Self, ListenerError> {
-        let provider = Provider::<Ws>::connect(&chain.rpc)
-            .await
-            .into_report()
-            .attach_printable_lazy(|| format!("Failed to connect to RPC: {}", chain.rpc))
-            .change_context(ListenerError::ProviderError)?;
+        let provider = Provider::<Http>::connect(&chain.rpc).await;
         let erc165_nservice = provider.clone().into();
         let erc165_service = Erc165CacheService::new(pool.clone(), erc165_nservice, chain_id);
         let uri_getter = EthUriGetter::new(provider.clone());
@@ -83,7 +80,7 @@ impl Listenable for Listener {
         let provider = self.provider.clone();
         let cid = self.chain_id;
         let sender = tokio::spawn(async move {
-            let mut subscription = provider.subscribe_logs(&filter).await.unwrap();
+            let mut subscription = provider.watch(&filter).await.unwrap();
 
             while let Some(log) = subscription.next().await {
                 if let Ok(event) = TransferEvent::try_from(&log) {
@@ -130,7 +127,7 @@ impl Listenable for Listener {
         let cname = self.name.clone();
         let cid = self.chain_id;
         let receiver = tokio::spawn(async move {
-            let mut subscription = provider.subscribe_blocks().await.unwrap();
+            let mut subscription = provider.watch_blocks().await.unwrap();
 
             while let Some(b) = subscription.next().await {
                 if let Some((contracts, ids)) = (&mut rx)
@@ -144,7 +141,7 @@ impl Listenable for Listener {
                         info!(
                             "Got {:?} EthNfts in block: {:?} for {}[{}]",
                             logs.len(),
-                            b.number.unwrap(),
+                            b,
                             cname,
                             cid
                         );

@@ -9,16 +9,17 @@ use crate::erc165::service::Erc165Service;
 
 use super::erc165_interfaces::*;
 use error_stack::{IntoReport, Result, ResultExt};
-use ethers::prelude::{Provider, Ws, H160};
+use ethers::prelude::{Provider, H160};
+use ethers::providers::Http;
 use ethers::utils;
 
 #[derive(Clone)]
 pub struct Erc165NetworkService {
-    provider: Arc<Provider<Ws>>,
+    provider: Arc<Provider<Http>>,
 }
 
-impl From<Provider<Ws>> for Erc165NetworkService {
-    fn from(provider: Provider<Ws>) -> Self {
+impl From<Provider<Http>> for Erc165NetworkService {
+    fn from(provider: Provider<Http>) -> Self {
         Erc165NetworkService {
             provider: Arc::new(provider),
         }

@@ -1,3 +1,4 @@
 /target
 .idea/
 config.json5
+fetch-chain-rpcs.py

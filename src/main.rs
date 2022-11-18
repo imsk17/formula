@@ -6,6 +6,8 @@ use crate::{
     listener::{Listenable, Listener},
 };
 
+use error_stack::{ResultExt, Result};
+use errors::FormulaErrors;
 use tokio;
 use tracing::debug;
 #[macro_use]
@@ -19,16 +21,17 @@ mod events;
 mod listener;
 mod schema;
 mod uri_getter;
+mod errors;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), FormulaErrors> {
     AppConfig::setup_logging();
 
-    let config = Arc::new(AppConfig::from_json5("config").unwrap());
+    let config = Arc::new(AppConfig::from_json5("config").change_context(FormulaErrors::ConfigError)?);
 
     debug!("Config Read Successfully. {:?}", &config);
 
-    let pool = config.db_pool().unwrap();
+    let pool = config.db_pool().change_context(FormulaErrors::ConfigError)?;
 
     debug!("Connection Pool Established Successfully.");
 
@@ -39,10 +42,12 @@ async fn main() {
         tokio::spawn(async move {
             let listener = Listener::try_from(&chain, pool.clone(), chain.chain_id)
                 .await
-                .unwrap();
+                .change_context(FormulaErrors::ListenerError(chain.chain_id)).unwrap();
             listener.listen().await
         })
     });
 
-    let _ = futures::future::join_all(listeners).await;
+    let results = futures::future::join_all(listeners).await;
+
+    Ok(())
 }

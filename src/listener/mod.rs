@@ -4,7 +4,7 @@ use std::{str::FromStr, sync::Arc};
 
 use crate::erc165::service::Erc165Service;
 use crate::uri_getter::eth_uri_getter::EthUriGetter;
-use crate::{config::Chain, ethdto::repo::EthRepo};
+use crate::{config::Chain, ethdto::write_repo::EthWriteRepo};
 
 use ethnftid::EthNftId;
 
@@ -37,7 +37,7 @@ pub struct Listener {
     pub pool: Arc<PgPool>,
     pub chain_id: i64,
     pub erc165_service: Erc165CacheService,
-    pub eth_repo: EthRepo,
+    pub eth_repo: EthWriteRepo,
 }
 
 impl Listener {
@@ -54,7 +54,7 @@ impl Listener {
         let erc165_nservice = provider.clone().into();
         let erc165_service = Erc165CacheService::new(pool.clone(), erc165_nservice, chain_id);
         let uri_getter = EthUriGetter::new(provider.clone());
-        let eth_repo = EthRepo::new(pool.clone(), uri_getter);
+        let eth_repo = EthWriteRepo::new(pool.clone(), uri_getter);
 
         Ok(Self {
             provider,

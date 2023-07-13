@@ -41,7 +41,6 @@ impl Erc165CacheService {
     }
 }
 
-#[async_trait::async_trait]
 impl Erc165Service for Erc165CacheService {
     async fn supported_traits(&self, contracts: &[H160]) -> Result<Erc165Res, Erc165ServiceErrors> {
         use crate::diesel::ExpressionMethods;

@@ -17,7 +17,6 @@ pub struct EthUriGetter {
     provider: Provider<Ws>,
 }
 
-#[async_trait::async_trait]
 impl UriGetter for EthUriGetter {
     async fn get_uri(&self, res: Erc165Res, id: EthNftId) -> Option<NewEthDto> {
         let e = HashSet::<Erc165Interface>::new();

@@ -12,7 +12,7 @@ use crate::erc165::cache_service::Erc165CacheService;
 use crate::events::transfer::TransferEvent;
 use crate::events::transfer_batch::TransferBatchEvent;
 use crate::events::transfer_single::TransferSingleEvent;
-use async_trait::async_trait;
+
 use diesel::{r2d2, PgConnection};
 use error_stack::{IntoReport, Result, ResultExt};
 use ethers::{
@@ -24,7 +24,6 @@ use tracing::info;
 
 use self::errors::ListenerError;
 
-#[async_trait]
 pub trait Listenable {
     async fn listen(&self) -> Result<(), ListenerError>;
 }
@@ -69,7 +68,6 @@ impl Listener {
     }
 }
 
-#[async_trait]
 impl Listenable for Listener {
     async fn listen(&self) -> Result<(), ListenerError> {
         use ValueOrArray::*;

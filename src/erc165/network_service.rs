@@ -25,7 +25,6 @@ impl From<Provider<Ws>> for Erc165NetworkService {
     }
 }
 
-#[async_trait::async_trait]
 impl Erc165Service for Erc165NetworkService {
     async fn supported_traits(&self, contracts: &[H160]) -> Result<Erc165Res, Erc165ServiceErrors> {
         let mut res: Erc165Res = HashMap::new();

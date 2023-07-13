@@ -1,7 +1,7 @@
 use crate::schema::ethdto;
 use chrono::NaiveDateTime;
 
-#[derive(Queryable, Debug, Clone, Identifiable)]
+#[derive(Queryable, Debug, Clone, Identifiable, serde::Serialize, serde::Deserialize)]
 #[diesel(table_name = ethdto)]
 pub struct EthDto {
     pub id: i32,
@@ -13,6 +13,7 @@ pub struct EthDto {
     pub uri: Option<String>,
     pub name: Option<String>,
     pub symbol: Option<String>,
+    #[serde(skip)]
     pub updated_at: NaiveDateTime,
 }
 

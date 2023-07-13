@@ -16,18 +16,18 @@ use super::errors::RepoError;
 use crate::listener::ethnftid::EthNftId;
 use crate::uri_getter::eth_uri_getter::EthUriGetter;
 #[derive(Clone)]
-pub struct EthRepo {
+pub struct EthWriteRepo {
     pool: PgPool,
     uri_getter: EthUriGetter,
 }
 
-impl EthRepo {
-    pub fn new(pool: PgPool, uri_getter: EthUriGetter) -> EthRepo {
-        EthRepo { pool, uri_getter }
+impl EthWriteRepo {
+    pub fn new(pool: PgPool, uri_getter: EthUriGetter) -> EthWriteRepo {
+        EthWriteRepo { pool, uri_getter }
     }
 }
 
-impl EthRepo {
+impl EthWriteRepo {
     fn _get_conn(&self) -> Result<PooledConnection<ConnectionManager<PgConnection>>, RepoError> {
         self.pool
             .get()

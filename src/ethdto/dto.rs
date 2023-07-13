@@ -4,6 +4,7 @@ use chrono::NaiveDateTime;
 #[derive(Queryable, Debug, Clone, Identifiable, serde::Serialize, serde::Deserialize)]
 #[diesel(table_name = ethdto)]
 pub struct EthDto {
+    #[serde(skip)]
     pub id: i32,
     pub contract: String,
     pub chain_id: i64,

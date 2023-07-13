@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![feature(async_fn_in_trait)]
 #![allow(incomplete_features)]
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 
 use crate::{
     config::AppConfig,
@@ -52,7 +52,7 @@ async fn main() {
 
     let _ = futures::future::join_all(listeners);
 
-    Server::bind(&"0.0.0.0:3000".parse().unwrap())
+    Server::bind(&SocketAddr::from((config.host, config.port)))
         .serve(create_nft_router(EthReadRepo::new(pool.clone())).into_make_service())
         .await
         .unwrap();

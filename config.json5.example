@@ -1,6 +1,6 @@
 {
   // The Host to Run The Server For Formula on
-  host: "localhost",
+  host: [127,0,0,1],
   // The Port to Run The Server For Formula on
   port: 8080,
   // The Path/URL For The DB Connection

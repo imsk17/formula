@@ -20,8 +20,8 @@ pub struct Chain {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct AppConfig {
-    pub host: String,
-    pub port: i32,
+    pub host: [u8; 4],
+    pub port: u16,
     pub db: String,
     pub chains: Vec<Chain>,
 }

@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![feature(async_fn_in_trait)]
 #![allow(incomplete_features)]
 use std::{net::SocketAddr, sync::Arc};
 

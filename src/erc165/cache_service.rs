@@ -13,7 +13,7 @@ use diesel::{
     r2d2::{ConnectionManager, Pool},
 };
 use diesel::{QueryDsl, RunQueryDsl};
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 use ethers::prelude::H160;
 use ethers::utils;
 
@@ -72,7 +72,7 @@ impl Erc165Service for Erc165CacheService {
             .values(&insert)
             .on_conflict_do_nothing()
             .execute(&mut self.db.get().unwrap())
-            .into_report()
+            .map_err(Report::from)
             .attach_printable_lazy(|| {
                 format!("Failed to insert values {:?} into erc165dto table", insert)
             })

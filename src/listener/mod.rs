@@ -14,7 +14,7 @@ use crate::events::transfer_batch::TransferBatchEvent;
 use crate::events::transfer_single::TransferSingleEvent;
 
 use diesel::{r2d2, PgConnection};
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 use ethers::{
     prelude::{Filter, Middleware, Provider, StreamExt, ValueOrArray, Ws, H160, U256},
     utils::to_checksum,
@@ -48,7 +48,7 @@ impl Listener {
     ) -> Result<Self, ListenerError> {
         let provider = Provider::<Ws>::connect(&chain.rpc)
             .await
-            .into_report()
+            .map_err(Report::from)
             .attach_printable_lazy(|| format!("Failed to connect to RPC: {}", chain.rpc))
             .change_context(ListenerError::ProviderError)?;
         let erc165_nservice = provider.clone().into();

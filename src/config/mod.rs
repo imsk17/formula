@@ -4,7 +4,7 @@ use crate::listener::PgPool;
 use diesel::r2d2;
 use diesel::{r2d2::ConnectionManager, PgConnection};
 use error::AppConfigError;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 use serde::Deserialize;
 use tracing::{info, instrument};
 use tracing_subscriber::EnvFilter;
@@ -34,12 +34,12 @@ impl AppConfig {
         let config = Config::builder()
             .add_source(config::File::with_name(filename))
             .build()
-            .into_report()
+            .map_err(Report::from)
             .change_context(AppConfigError::BuildConfigFromFile)?;
 
         config
             .try_deserialize::<AppConfig>()
-            .into_report()
+            .map_err(Report::from)
             .change_context(AppConfigError::DeserializeConfigIntoStruct)
     }
 
@@ -48,7 +48,7 @@ impl AppConfig {
 
         r2d2::Pool::builder()
             .build(cm)
-            .into_report()
+            .map_err(Report::from)
             .attach_printable_lazy(|| format!("Unable to connect to DB URI: {}", self.db))
             .change_context(AppConfigError::FailedToCreateDB)
     }

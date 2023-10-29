@@ -7,7 +7,7 @@ use crate::schema::ethdto::token_id;
 use crate::uri_getter::UriGetter;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use diesel::{OptionalExtension, PgConnection, QueryDsl, RunQueryDsl};
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 use tokio::task::JoinHandle;
 use tracing::{debug, error};
 
@@ -31,7 +31,7 @@ impl EthWriteRepo {
     fn _get_conn(&self) -> Result<PooledConnection<ConnectionManager<PgConnection>>, RepoError> {
         self.pool
             .get()
-            .into_report()
+            .map_err(Report::from)
             .change_context(RepoError::FailedToGetConnection)
     }
 
@@ -40,7 +40,7 @@ impl EthWriteRepo {
             .filter(chain_id.eq(chain))
             .filter(owner.eq(owner_address.clone()))
             .load(&mut self._get_conn()?)
-            .into_report()
+            .map_err(Report::from)
             .attach_printable_lazy(|| {
                 format!(
                     "Failed to get NFTs for chain {} and owner {}",
@@ -58,7 +58,7 @@ impl EthWriteRepo {
                 .filter(token_id.eq(&nft.token_id))
                 .first::<EthDto>(&mut self._get_conn()?)
                 .optional()
-                .into_report()
+                .map_err(Report::from)
                 .attach_printable_lazy(|| {
                     format!("Encountered Error While Querying This NFT {:?}", nft)
                 })
@@ -69,7 +69,7 @@ impl EthWriteRepo {
                     diesel::update(&ent)
                         .set(owner.eq(&nft.owner))
                         .execute(&mut self._get_conn()?)
-                        .into_report()
+                        .map_err(Report::from)
                         .attach_printable_lazy(|| {
                             format!("Failed to update {ent:?} with values {nft:?}")
                         })
@@ -79,7 +79,7 @@ impl EthWriteRepo {
                     diesel::insert_into(ethdto)
                         .values(nft)
                         .execute(&mut self._get_conn()?)
-                        .into_report()
+                        .map_err(Report::from)
                         .attach_printable_lazy(|| format!("Failed to insert {nft:?}"))
                         .change_context(RepoError::DatabaseError)?;
                 }
@@ -101,7 +101,7 @@ impl EthWriteRepo {
                         .filter(token_id.eq(&nft.token_id))
                         .first::<EthDto>(&mut pool)
                         .optional()
-                        .into_report()
+                        .map_err(Report::from)
                         .attach_printable_lazy(|| {
                             format!("Encountered Error While Querying This NFT {:?}", nft)
                         })
@@ -114,7 +114,7 @@ impl EthWriteRepo {
                                 if nft.owner == "0x0000000000000000000000000000000000000000" {
                                     diesel::delete(&ent)
                                         .execute(&mut pool)
-                                        .into_report()
+                                        .map_err(Report::from)
                                         .attach_printable_lazy(|| {
                                             format!("Failed to delete {ent:?}")
                                         })
@@ -123,7 +123,7 @@ impl EthWriteRepo {
                                 diesel::update(&ent)
                                     .set(owner.eq(&nft.owner))
                                     .execute(&mut pool)
-                                    .into_report()
+                                    .map_err(Report::from)
                                     .attach_printable_lazy(|| {
                                         format!("Failed to update {ent:?} with values {nft:?}")
                                     })
@@ -137,7 +137,7 @@ impl EthWriteRepo {
                                 .do_update()
                                 .set(owner.eq(&nft.owner))
                                 .execute(&mut pool)
-                                .into_report()
+                                .map_err(Report::from)
                                 .attach_printable_lazy(|| format!("Failed to insert {nft:?}"))
                                 .change_context(RepoError::DatabaseError)?;
                         }

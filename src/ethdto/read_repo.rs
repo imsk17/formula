@@ -6,7 +6,7 @@ use crate::schema::ethdto::dsl::{chain_id, owner};
 
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use diesel::{PgConnection, QueryDsl, RunQueryDsl};
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 
 use super::dto::EthDto;
 use super::errors::RepoError;
@@ -26,7 +26,7 @@ impl EthReadRepo {
     fn _get_conn(&self) -> Result<PooledConnection<ConnectionManager<PgConnection>>, RepoError> {
         self.pool
             .get()
-            .into_report()
+            .map_err(Report::from)
             .change_context(RepoError::FailedToGetConnection)
     }
 
@@ -35,7 +35,7 @@ impl EthReadRepo {
             .filter(chain_id.eq(chain))
             .filter(owner.eq(owner_address.clone()))
             .load(&mut self._get_conn()?)
-            .into_report()
+            .map_err(Report::from)
             .attach_printable_lazy(|| {
                 format!(
                     "Failed to get NFTs for chain {} and owner {}",

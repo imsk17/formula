@@ -1,6 +1,6 @@
 use ethers::abi::RawLog;
 
-use error_stack::{IntoReport, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use ethers::prelude::{Address, EthEvent, Log, H256, U256};
 use ethers::utils::keccak256;
 
@@ -29,7 +29,7 @@ impl TryFrom<&Log> for TransferSingleEvent {
             data: log.data.to_vec(),
             topics: log.topics.clone(),
         })
-        .into_report()
+        .map_err(Report::from)
         .attach_printable_lazy(|| {
             format!("Failed to decode Transfer Batch Event From Log: {:?}", log)
         })

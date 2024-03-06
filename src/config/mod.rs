@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use config::Config;
 
 use crate::listener::PgPool;
@@ -43,7 +45,7 @@ impl AppConfig {
             .change_context(AppConfigError::DeserializeConfigIntoStruct)
     }
 
-    pub fn db_pool(&self) -> Result<PgPool, AppConfigError> {
+    pub fn db_pool(&self) -> Result<Arc<PgPool>, AppConfigError> {
         let cm = ConnectionManager::<PgConnection>::new(&self.db);
 
         r2d2::Pool::builder()
@@ -51,6 +53,7 @@ impl AppConfig {
             .map_err(Report::from)
             .attach_printable_lazy(|| format!("Unable to connect to DB URI: {}", self.db))
             .change_context(AppConfigError::FailedToCreateDB)
+            .map(|pool| Arc::new(pool))
     }
 
     pub fn setup_logging() -> () {

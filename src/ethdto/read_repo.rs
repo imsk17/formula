@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::diesel::ExpressionMethods;
 
 use crate::listener::PgPool;
@@ -13,11 +15,11 @@ use super::errors::RepoError;
 
 #[derive(Clone)]
 pub struct EthReadRepo {
-    pool: PgPool,
+    pool: Arc<PgPool>,
 }
 
 impl EthReadRepo {
-    pub fn new(pool: PgPool) -> EthReadRepo {
+    pub fn new(pool: Arc<PgPool>) -> EthReadRepo {
         EthReadRepo { pool }
     }
 }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::diesel::ExpressionMethods;
 use crate::erc165::service::Erc165Res;
 use crate::listener::PgPool;
@@ -17,12 +19,12 @@ use crate::listener::ethnftid::EthNftId;
 use crate::uri_getter::eth_uri_getter::EthUriGetter;
 #[derive(Clone)]
 pub struct EthWriteRepo {
-    pool: PgPool,
+    pool: Arc<PgPool>,
     uri_getter: EthUriGetter,
 }
 
 impl EthWriteRepo {
-    pub fn new(pool: PgPool, uri_getter: EthUriGetter) -> EthWriteRepo {
+    pub fn new(pool: Arc<PgPool>, uri_getter: EthUriGetter) -> EthWriteRepo {
         EthWriteRepo { pool, uri_getter }
     }
 }

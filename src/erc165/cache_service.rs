@@ -1,17 +1,13 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 use crate::erc165::errors::Erc165ServiceErrors;
 use crate::erc165::model::{Erc165Dto, NewErc165Dto};
 use crate::erc165::service::Erc165Res;
 use crate::erc165::service::Erc165Service;
+use crate::listener::PgPool;
 use crate::schema::erc165dto::{chain_id, contract};
 
-use diesel::pg::PgConnection;
-
-use diesel::{
-    r2d2,
-    r2d2::{ConnectionManager, Pool},
-};
 use diesel::{QueryDsl, RunQueryDsl};
 use error_stack::{Report, Result, ResultExt};
 use ethers::prelude::H160;
@@ -22,17 +18,13 @@ use super::network_service::Erc165NetworkService;
 
 #[derive(Clone)]
 pub struct Erc165CacheService {
-    db: r2d2::Pool<ConnectionManager<PgConnection>>,
+    db: Arc<PgPool>,
     network_service: Erc165NetworkService,
     chain_id: i64,
 }
 
 impl Erc165CacheService {
-    pub fn new(
-        db: Pool<ConnectionManager<PgConnection>>,
-        network_service: Erc165NetworkService,
-        chainid: i64,
-    ) -> Self {
+    pub fn new(db: Arc<PgPool>, network_service: Erc165NetworkService, chainid: i64) -> Self {
         Erc165CacheService {
             db,
             network_service,

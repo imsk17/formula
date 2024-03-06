@@ -43,7 +43,7 @@ pub struct Listener {
 impl Listener {
     pub async fn try_from(
         chain: &Chain,
-        pool: PgPool,
+        pool: Arc<PgPool>,
         chain_id: i64,
     ) -> Result<Self, ListenerError> {
         let provider = Provider::<Ws>::connect(&chain.rpc)
@@ -52,15 +52,15 @@ impl Listener {
             .attach_printable_lazy(|| format!("Failed to connect to RPC: {}", chain.rpc))
             .change_context(ListenerError::ProviderError)?;
         let erc165_nservice = provider.clone().into();
-        let erc165_service = Erc165CacheService::new(pool.clone(), erc165_nservice, chain_id);
+        let erc165_service = Erc165CacheService::new(Arc::clone(&pool), erc165_nservice, chain_id);
         let uri_getter = EthUriGetter::new(provider.clone());
-        let eth_repo = EthWriteRepo::new(pool.clone(), uri_getter);
+        let eth_repo = EthWriteRepo::new(Arc::clone(&pool), uri_getter);
 
         Ok(Self {
             provider,
             name: chain.name.clone(),
             rpc: chain.rpc.clone(),
-            pool: Arc::new(pool),
+            pool: Arc::clone(&pool),
             chain_id,
             erc165_service,
             eth_repo,

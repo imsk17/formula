@@ -40,7 +40,7 @@ async fn main() {
     let chains = config.chains.clone();
 
     let listeners = chains.into_iter().map(|chain| {
-        let pool = pool.clone();
+        let pool = Arc::clone(&pool);
         tokio::spawn(async move {
             let listener = Listener::try_from(&chain, pool.clone(), chain.chain_id)
                 .await
@@ -52,7 +52,7 @@ async fn main() {
     let _ = futures::future::join_all(listeners);
 
     Server::bind(&SocketAddr::from((config.host, config.port)))
-        .serve(create_nft_router(EthReadRepo::new(pool.clone())).into_make_service())
+        .serve(create_nft_router(EthReadRepo::new(Arc::clone(&pool))).into_make_service())
         .await
         .unwrap();
 }

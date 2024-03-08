@@ -1,7 +1,7 @@
 use std::{collections::HashSet, str::FromStr, sync::Arc};
 
 use chrono::Utc;
-use ethers::prelude::{Provider, Ws, H160, U256};
+use ethers::prelude::{Http, Provider, H160, U256};
 
 use crate::{
     contracts::{ERC1155Contract, ERC721Contract},
@@ -14,7 +14,7 @@ use super::UriGetter;
 
 #[derive(Clone)]
 pub struct EthUriGetter {
-    provider: Provider<Ws>,
+    provider: Provider<Http>,
 }
 
 impl UriGetter for EthUriGetter {
@@ -84,7 +84,7 @@ impl UriGetter for EthUriGetter {
 }
 
 impl EthUriGetter {
-    pub fn new(provider: Provider<Ws>) -> Self {
+    pub fn new(provider: Provider<Http>) -> Self {
         Self { provider }
     }
 }

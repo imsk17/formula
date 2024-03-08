@@ -16,7 +16,7 @@ use crate::events::transfer_single::TransferSingleEvent;
 use diesel::{r2d2, PgConnection};
 use error_stack::{Report, Result, ResultExt};
 use ethers::{
-    prelude::{Filter, Middleware, Provider, StreamExt, ValueOrArray, Ws, H160, U256},
+    prelude::{Filter, Http, Middleware, Provider, StreamExt, ValueOrArray, H160, U256},
     utils::to_checksum,
 };
 use futures::SinkExt;
@@ -33,7 +33,7 @@ pub type PgPool = r2d2::Pool<r2d2::ConnectionManager<PgConnection>>;
 pub struct Listener {
     pub name: String,
     pub rpc: String,
-    pub provider: Provider<Ws>,
+    pub provider: Provider<Http>,
     pub pool: Arc<PgPool>,
     pub chain_id: i64,
     pub erc165_service: Erc165CacheService,
@@ -46,8 +46,7 @@ impl Listener {
         pool: Arc<PgPool>,
         chain_id: i64,
     ) -> Result<Self, ListenerError> {
-        let provider = Provider::<Ws>::connect(&chain.rpc)
-            .await
+        let provider = Provider::try_from(&chain.rpc)
             .map_err(Report::from)
             .attach_printable_lazy(|| format!("Failed to connect to RPC: {}", chain.rpc))
             .change_context(ListenerError::ProviderError)?;
@@ -81,7 +80,8 @@ impl Listenable for Listener {
         let provider = self.provider.clone();
         let cid = self.chain_id;
         let sender = tokio::spawn(async move {
-            let mut subscription = provider.subscribe_logs(&filter).await.unwrap();
+            let filter = filter.clone();
+            let mut subscription = provider.watch(&filter).await.unwrap();
 
             while let Some(log) = subscription.next().await {
                 if let Ok(event) = TransferEvent::try_from(&log) {
@@ -128,7 +128,7 @@ impl Listenable for Listener {
         let cname = self.name.clone();
         let cid = self.chain_id;
         let receiver = tokio::spawn(async move {
-            let mut subscription = provider.subscribe_blocks().await.unwrap();
+            let mut subscription = provider.watch_blocks().await.unwrap();
 
             while let Some(b) = subscription.next().await {
                 if let Some((contracts, ids)) = (&mut rx)
@@ -140,9 +140,9 @@ impl Listenable for Listener {
                             .map(|log| H160::from_str(&log.contract).unwrap())
                             .collect::<Vec<_>>();
                         info!(
-                            "Got {:?} EthNfts in block: {:?} for {}[{}]",
+                            "Got {:?} EthNfts in block: {:x?} for {}[{}]",
                             logs.len(),
-                            b.number.unwrap(),
+                            b,
                             cname,
                             cid
                         );

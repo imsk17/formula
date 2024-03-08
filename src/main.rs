@@ -9,8 +9,7 @@ use crate::{
     server::routers::nfts::create_nft_router,
 };
 
-use axum::Server;
-use tokio;
+use tokio::{self, net::TcpListener};
 use tracing::debug;
 #[macro_use]
 extern crate diesel;
@@ -51,8 +50,13 @@ async fn main() {
 
     let _ = futures::future::join_all(listeners);
 
-    Server::bind(&SocketAddr::from((config.host, config.port)))
-        .serve(create_nft_router(EthReadRepo::new(Arc::clone(&pool))).into_make_service())
+    let connection = TcpListener::bind(&SocketAddr::from((config.host, config.port)))
         .await
-        .unwrap();
+        .expect("Failed to bind to address");
+    axum::serve(
+        connection,
+        create_nft_router(EthReadRepo::new(Arc::clone(&pool))).into_make_service(),
+    )
+    .await
+    .unwrap();
 }

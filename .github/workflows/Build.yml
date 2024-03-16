@@ -39,6 +39,27 @@ jobs:
           target: ${{ matrix.target }}
           override: true
 
+      - name: Install postgres (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          choco install postgresql12 --force --params '/Password:root'
+          echo "C:\Program Files\PostgreSQL\12\bin" >> $GITHUB_PATH
+          echo "C:\Program Files\PostgreSQL\12\lib" >> $GITHUB_PATH
+          echo "PQ_LIB_DIR=C:\Program Files\PostgreSQL\12\lib" >> $GITHUB_ENV
+
+      - name: Install postgres (MacOS M1)
+        if: matrix.os == 'macos-14' || matrix.os == 'macos-latest'
+        run: |
+          brew install postgresql
+          brew services start postgresql@14
+
+      - name: Install postgres (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev postgresql
+          
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
 
@@ -52,9 +73,9 @@ jobs:
 
           # Zip artifacts for Windows
           if [ "${{ matrix.os }}" == "windows-latest" ]; then
-            7z a quicssh-${{ matrix.os }}.zip artifacts/
+            7z a formula-${{ matrix.os }}.zip artifacts/
           else
-            tar -czvf quicssh-${{ matrix.os }}.tar.gz artifacts/
+            tar -czvf formula-${{ matrix.os }}.tar.gz artifacts/
           fi
         shell: bash
 
@@ -62,9 +83,9 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.os }}
-          path: ./quicssh*
+          path: ./formula*
     env:
-      PROJECT_NAME: quicssh
+      PROJECT_NAME: formula
 
   release:
     name: Release

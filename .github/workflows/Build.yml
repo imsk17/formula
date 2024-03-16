@@ -1,0 +1,91 @@
+name: Rust Binary Release
+
+on:
+  push:
+
+jobs:
+  build:
+    name: Build Rust Binary Releases
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-14
+            target: aarch64-apple-darwin
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Cache Cargo
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package Artifacts
+        run: |
+          mkdir artifacts
+          cp target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }} artifacts/
+          cp README.md artifacts/
+          cp LICENSE artifacts/
+          cp config.json5.example artifacts/
+
+          # Zip artifacts for Windows
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            7z a quicssh-${{ matrix.os }}.zip artifacts/
+          else
+            tar -czvf quicssh-${{ matrix.os }}.tar.gz artifacts/
+          fi
+        shell: bash
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}
+          path: ./quicssh*
+    env:
+      PROJECT_NAME: quicssh
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - name: Release
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          automatic_release_tag: latest
+          prerelease: false
+          title: Latest Release
+          files: |
+            macos-latest/*.tar.gz
+            macos-14/*.tar.gz
+            ubuntu-latest/*.tar.gz
+            windows-latest/*.zip

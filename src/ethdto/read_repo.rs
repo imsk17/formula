@@ -35,7 +35,7 @@ impl EthReadRepo {
     pub fn nfts(&self, chain: i64, owner_address: String) -> Result<Vec<EthDto>, RepoError> {
         ethdto
             .filter(chain_id.eq(chain))
-            .filter(owner.eq(owner_address.clone()))
+            .filter(owner.eq(&owner_address))
             .load(&mut self._get_conn()?)
             .map_err(Report::from)
             .attach_printable_lazy(|| {

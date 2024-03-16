@@ -33,11 +33,11 @@ pub type PgPool = r2d2::Pool<r2d2::ConnectionManager<PgConnection>>;
 pub struct Listener {
     pub name: String,
     pub rpc: String,
-    pub provider: Provider<Http>,
+    pub provider: Arc<Provider<Http>>,
     pub pool: Arc<PgPool>,
     pub chain_id: i64,
-    pub erc165_service: Erc165CacheService,
-    pub eth_repo: EthWriteRepo,
+    pub erc165_service: Arc<Erc165CacheService>,
+    pub eth_repo: Arc<EthWriteRepo>,
 }
 
 impl Listener {
@@ -50,19 +50,20 @@ impl Listener {
             .map_err(Report::from)
             .attach_printable_lazy(|| format!("Failed to connect to RPC: {}", chain.rpc))
             .change_context(ListenerError::ProviderError)?;
-        let erc165_nservice = provider.clone().into();
+        let provider = Arc::new(provider);
+        let erc165_nservice = Arc::clone(&provider).into();
         let erc165_service = Erc165CacheService::new(Arc::clone(&pool), erc165_nservice, chain_id);
-        let uri_getter = EthUriGetter::new(provider.clone());
+        let uri_getter = EthUriGetter::new(Arc::clone(&provider));
         let eth_repo = EthWriteRepo::new(Arc::clone(&pool), uri_getter);
 
         Ok(Self {
-            provider,
+            provider: Arc::clone(&provider),
             name: chain.name.clone(),
             rpc: chain.rpc.clone(),
             pool: Arc::clone(&pool),
             chain_id,
-            erc165_service,
-            eth_repo,
+            erc165_service: Arc::new(erc165_service),
+            eth_repo: Arc::new(eth_repo),
         })
     }
 }
@@ -77,10 +78,11 @@ impl Listenable for Listener {
             TransferSingleEvent::topic_h256(),
             TransferBatchEvent::topic_h256(),
         ]));
-        let provider = self.provider.clone();
+        let filter = Arc::new(filter);
+        let provider = Arc::clone(&self.provider);
         let cid = self.chain_id;
         let sender = tokio::spawn(async move {
-            let filter = filter.clone();
+            let filter = Arc::clone(&filter);
             let mut subscription = provider.watch(&filter).await.unwrap();
 
             while let Some(log) = subscription.next().await {
@@ -122,9 +124,9 @@ impl Listenable for Listener {
                 }
             }
         });
-        let provider = self.provider.clone();
-        let erc165_service = self.erc165_service.clone();
-        let ethrepo = self.eth_repo.clone();
+        let provider = Arc::clone(&self.provider);
+        let erc165_service = Arc::clone(&self.erc165_service);
+        let ethrepo = Arc::clone(&self.eth_repo);
         let cname = self.name.clone();
         let cid = self.chain_id;
         let receiver = tokio::spawn(async move {
@@ -135,7 +137,6 @@ impl Listenable for Listener {
                     .ready_chunks(1000)
                     .map(|logs| {
                         let contracts = logs
-                            .clone()
                             .iter()
                             .map(|log| H160::from_str(&log.contract).unwrap())
                             .collect::<Vec<_>>();
@@ -151,8 +152,8 @@ impl Listenable for Listener {
                     .next()
                     .await
                 {
-                    let erc165_service = erc165_service.clone();
-                    let ethrepo = ethrepo.clone();
+                    let erc165_service =Arc::clone(& erc165_service);
+                    let ethrepo = Arc::clone(&ethrepo);
                     tokio::spawn(async move {
                         let erc165res = erc165_service.supported_traits(&*contracts).await.unwrap();
                         let _ = ethrepo.in_or_up_gen(&ids, erc165res).await;

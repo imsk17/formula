@@ -17,10 +17,10 @@ pub struct Erc165NetworkService {
     provider: Arc<Provider<Http>>,
 }
 
-impl From<Provider<Http>> for Erc165NetworkService {
-    fn from(provider: Provider<Http>) -> Self {
+impl From<Arc<Provider<Http>>> for Erc165NetworkService {
+    fn from(provider: Arc<Provider<Http>>) -> Self {
         Erc165NetworkService {
-            provider: Arc::new(provider),
+            provider: Arc::clone(&provider),
         }
     }
 }
@@ -30,7 +30,7 @@ impl Erc165Service for Erc165NetworkService {
         let mut res: Erc165Res = HashMap::new();
         for contract_addr in contracts {
             let mut set = HashSet::<Erc165Interface>::new();
-            let contract = ERC165Contract::new(*contract_addr, self.provider.clone());
+            let contract = ERC165Contract::new(*contract_addr, Arc::clone(&self.provider));
             let supports_erc165: bool = contract
                 .supports_interface(*ERC165)
                 .call()

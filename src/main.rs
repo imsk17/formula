@@ -41,7 +41,7 @@ async fn main() {
     let listeners = chains.into_iter().map(|chain| {
         let pool = Arc::clone(&pool);
         tokio::spawn(async move {
-            let listener = Listener::try_from(&chain, pool.clone(), chain.chain_id)
+            let listener = Listener::try_from(&chain, pool, chain.chain_id)
                 .await
                 .unwrap();
             listener.listen().await

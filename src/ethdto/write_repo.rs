@@ -40,7 +40,7 @@ impl EthWriteRepo {
     pub fn nfts(&self, chain: i64, owner_address: String) -> Result<Vec<EthDto>, RepoError> {
         ethdto
             .filter(chain_id.eq(chain))
-            .filter(owner.eq(owner_address.clone()))
+            .filter(owner.eq(&owner_address))
             .load(&mut self._get_conn()?)
             .map_err(Report::from)
             .attach_printable_lazy(|| {
@@ -93,7 +93,7 @@ impl EthWriteRepo {
     pub async fn in_or_up_gen(&self, ids: &[EthNftId], res: Erc165Res) -> Result<(), RepoError> {
         debug!("Upserting {} nfts into the database", ids.len());
         for id in ids {
-            let opt = self.uri_getter.get_uri(res.clone(), id.clone()).await;
+            let opt = self.uri_getter.get_uri(&res, id).await;
             let mut pool = self._get_conn()?;
             let handles: JoinHandle<Result<(), _>> = tokio::task::spawn_blocking(move || {
                 if let Some(nft) = opt {
@@ -134,7 +134,7 @@ impl EthWriteRepo {
                         }
                         None => {
                             diesel::insert_into(ethdto)
-                                .values(nft.clone())
+                                .values(&nft)
                                 .on_conflict((chain_id, token_id, contract))
                                 .do_update()
                                 .set(owner.eq(&nft.owner))
